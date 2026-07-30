@@ -4,6 +4,7 @@ Mecra Mesajdır - Test ve Çalıştırma Script'i
 1. LLM ile Çekirdek Mesajı 8 Farklı Mecraya Dönüştürür.
 2. Üretilen Mecra Mesajlarının Anlamsal Benzerlik, Bilgi Kaybı, CTA, Duygu Yoğunluğu, Belirsizlik
    ve Bozulma Zinciri (MMD) Analizini Yapar.
+3. Sonuçları MSSQL Veritabanına (Mecra_Mesajdır_DB) Kaydeder.
 """
 
 import os
@@ -16,6 +17,7 @@ load_dotenv()
 from src.domain.entities.message import CoreMessage
 from src.infrastructure.llm.llm_transformer_service import LLMMessageTransformerService
 from src.infrastructure.analyzers.semantic_info_loss_analyzer import SemanticAndInfoLossAnalyzer
+from src.infrastructure.database.repositories.mssql_repository import MSSQLRepository
 from src.application.use_cases.transform_message_use_case import TransformMessageUseCase
 from src.application.use_cases.analyze_messages_use_case import AnalyzeMessagesUseCase
 
@@ -98,6 +100,20 @@ async def main():
         print(f"ℹ️ Belirgin bir kırılma noktası tespit edilmedi (Maksimum sapma Δ = {degradation_chain.max_consecutive_deviation}).")
 
     print("=" * 115 + "\n")
+
+    # 6. ADIM 3: MSSQL VERİTABANINA KAYIT
+    print("=========================================================================================================")
+    print("⏳ ADIM 3: Analiz Sonuçları MSSQL Veritabanına (Mecra_Mesajdır_DB) Kaydediliyor...\n")
+    repo = MSSQLRepository()
+    campaign_id = repo.save_analysis_session(
+        core_message=core_message,
+        transformed_messages=transformed_messages,
+        degradation_result=degradation_chain,
+        campaign_title="Canlı LLM & Çoklu Mecra Analiz Testi",
+    )
+    if campaign_id > 0:
+        print(f"✅ Oturum veritabanına CampaignID={campaign_id} ile başarıyla yazıldı.")
+    print("=========================================================================================================\n")
 
 
 if __name__ == "__main__":
