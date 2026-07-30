@@ -217,15 +217,15 @@ function renderPlatformCards() {
     };
 
     const cardHtml = `
-      <div class="corporate-card p-5 flex flex-col justify-between hover:border-[#00A3A6] transition-all">
+      <div onclick="openExpandedCardModal('${platform.id}')" class="corporate-card p-5 flex flex-col justify-between hover:border-[#00A3A6] hover:-translate-y-1 hover:shadow-xl cursor-pointer transition-all duration-200 group">
         <div>
           <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
             <div class="flex items-center space-x-2">
-              <div class="p-2 rounded-lg bg-teal-50 text-[#00A3A6]">
+              <div class="p-2 rounded-lg bg-teal-50 text-[#00A3A6] group-hover:bg-[#00A3A6] group-hover:text-white transition-colors">
                 <i data-lucide="${platform.icon}" class="w-4 h-4"></i>
               </div>
               <div>
-                <h4 class="font-semibold text-slate-800 text-sm">${platform.name}</h4>
+                <h4 class="font-semibold text-slate-800 text-sm group-hover:text-[#00A3A6] transition-colors">${platform.name}</h4>
                 <span class="text-xs text-slate-600">${platform.category}</span>
               </div>
             </div>
@@ -234,7 +234,7 @@ function renderPlatformCards() {
             </span>
           </div>
 
-          <p class="text-sm text-slate-700 leading-relaxed font-normal whitespace-pre-line bg-slate-50/70 p-3 rounded-md border border-slate-100">
+          <p class="text-sm text-slate-700 leading-relaxed font-normal whitespace-pre-line bg-slate-50/70 p-3 rounded-md border border-slate-100 line-clamp-4">
             ${escapeHtml(message)}
           </p>
         </div>
@@ -244,10 +244,10 @@ function renderPlatformCards() {
             <span>Duygu: <strong class="${analysis.sentiment === 'POS' ? 'text-emerald-600' : 'text-rose-600'}">${analysis.sentiment}</strong></span>
             <span>Belirsizlik: <strong class="text-slate-700">${analysis.ambiguity}</strong></span>
           </div>
-          <button onclick="inspectPlatform('${platform.id}')" class="text-[#00A3A6] hover:text-[#007D80] font-medium flex items-center space-x-1">
-            <span>Analiz Et</span>
-            <i data-lucide="arrow-right" class="w-3 h-3"></i>
-          </button>
+          <div class="text-[#00A3A6] group-hover:text-[#007D80] font-bold flex items-center space-x-1">
+            <span>Büyüt & Detay</span>
+            <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
+          </div>
         </div>
       </div>
     `;
@@ -256,6 +256,71 @@ function renderPlatformCards() {
 
   initLucideIcons();
 }
+
+function openExpandedCardModal(platformId) {
+  const platform = PLATFORMS_CONFIG.find(p => p.id === platformId);
+  if (!platform) return;
+
+  const message = appState.transformedMessages[platformId] || "İçerik yükleniyor...";
+  const analysis = appState.analysisResults.find(a => a.channel === platformId) || {
+    sim: 85, loss: 'Hayır', cta: 'Evet', sentiment: 'POS', ambiguity: 'Düşük'
+  };
+
+  const modal = document.getElementById('card-detail-modal');
+  const container = document.getElementById('modal-container');
+  if (!modal || !container) return;
+
+  document.getElementById('modal-title').textContent = platform.name;
+  document.getElementById('modal-category').textContent = platform.category;
+  document.getElementById('modal-content').textContent = message;
+  document.getElementById('modal-sim').textContent = `%${analysis.sim}`;
+  document.getElementById('modal-loss').textContent = analysis.loss;
+  document.getElementById('modal-sentiment').textContent = analysis.sentiment === 'POS' ? 'Olumlu (POS)' : 'Olumsuz / Nötr';
+  document.getElementById('modal-ambiguity').textContent = analysis.ambiguity;
+
+  const iconEl = document.getElementById('modal-icon');
+  if (iconEl) iconEl.setAttribute('data-lucide', platform.icon);
+
+  const copyBtn = document.getElementById('modal-copy-btn');
+  if (copyBtn) {
+    copyBtn.onclick = () => {
+      navigator.clipboard.writeText(message);
+      showToast('İçerik panoya kopyalandı! 📋', 'success');
+    };
+  }
+
+  const diffBtn = document.getElementById('modal-diff-btn');
+  if (diffBtn) {
+    diffBtn.onclick = () => {
+      closeExpandedCardModal();
+      inspectPlatform(platformId);
+    };
+  }
+
+  modal.classList.remove('hidden');
+  setTimeout(() => {
+    container.classList.remove('scale-95', 'opacity-0');
+    container.classList.add('scale-100', 'opacity-100');
+  }, 10);
+
+  initLucideIcons();
+}
+
+function closeExpandedCardModal() {
+  const modal = document.getElementById('card-detail-modal');
+  const container = document.getElementById('modal-container');
+  if (!modal || !container) return;
+
+  container.classList.remove('scale-100', 'opacity-100');
+  container.classList.add('scale-95', 'opacity-0');
+  setTimeout(() => {
+    modal.classList.add('hidden');
+  }, 200);
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeExpandedCardModal();
+});
 
 function inspectPlatform(platformId) {
   appState.selectedPlatformForDiff = platformId;
