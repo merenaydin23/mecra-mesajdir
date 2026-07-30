@@ -2,7 +2,7 @@
 Mecra Mesajdır - Test ve Çalıştırma Script'i
 ==============================================
 1. LLM ile Çekirdek Mesajı 8 Farklı Mecraya Dönüştürür.
-2. Üretilen Mecra Mesajlarının Anlamsal Benzerlik ve Bilgi Kaybı Analizini Yapar.
+2. Üretilen Mecra Mesajlarının Anlamsal Benzerlik, Bilgi Kaybı ve CTA (Eylem Çağrısı) Analizini Yapar.
 """
 
 import os
@@ -20,9 +20,9 @@ from src.application.use_cases.analyze_messages_use_case import AnalyzeMessagesU
 
 
 async def main():
-    print("==========================================================================================")
+    print("=========================================================================================================")
     print("📡 MECRA MESAJDIR — LLM ÇOKLU MECRA DÖNÜŞTÜRÜCÜ & ANALİZ PLATFORMU")
-    print("==========================================================================================\n")
+    print("=========================================================================================================\n")
 
     # API Key kontrolü
     if not os.getenv("LLM_API_KEY"):
@@ -48,9 +48,9 @@ async def main():
         print(f"--------------------------------------------------")
         print(f"{msg.transformed_content}\n")
 
-    # 3. ADIM 2: ANLAMSAL BENZERLİK VE BİLGİ KAYBI ANALİZİ
-    print("==========================================================================================")
-    print("⏳ ADIM 2: LLM çıktıları üzerinde Anlamsal Benzerlik ve Bilgi Kaybı Analizi yapılıyor...\n")
+    # 3. ADIM 2: ANALİZ SÜRECİ (Anlamsal Benzerlik, Bilgi Kaybı & CTA Analizi)
+    print("=========================================================================================================")
+    print("⏳ ADIM 2: LLM çıktıları üzerinde Anlamsal Benzerlik, Bilgi Kaybı ve CTA (Eylem Çağrısı) Analizi yapılıyor...\n")
 
     analyzer_service = SemanticAndInfoLossAnalyzer()
     analyze_use_case = AnalyzeMessagesUseCase(analyzer_service=analyzer_service)
@@ -58,17 +58,19 @@ async def main():
     analysis_results = await analyze_use_case.execute(core_message, transformed_messages)
 
     # 4. SONUÇ RAPORU TABLOSU
-    print("\n" + "=" * 95)
-    print(f"{'MECRA ADI':<30} | {'ANLAMSAL BENZERLİK (%)':<22} | {'KONU KORUNMUŞ MU?':<18} | {'BİLGİ KAYBI VAR MI?':<18}")
-    print("=" * 95)
+    print("\n" + "=" * 125)
+    print(f"{'MECRA ADI':<28} | {'BENZERLİK (%)':<15} | {'BİLGİ KAYBI?':<14} | {'CTA VAR MI?':<12} | {'CTA ŞİDDETİ':<14} | {'HİTAP TÜRÜ':<20}")
+    print("=" * 125)
 
     for res in analysis_results:
         sim_str = f"%{res.semantic_similarity.semantic_similarity_percentage:.1f}"
-        topic_str = "Evet" if res.semantic_similarity.topic_preserved else "Hayır"
         loss_str = "Evet" if res.info_loss.info_loss_occurred else "Hayır"
-        print(f"{res.channel_name:<30} | {sim_str:<22} | {topic_str:<18} | {loss_str:<18}")
+        cta_str = "Evet ✅" if res.cta.has_cta else "Hayır ❌"
+        cta_score = res.cta.strength_text
+        person_type = res.cta.person_type
+        print(f"{res.channel_name:<28} | {sim_str:<15} | {loss_str:<14} | {cta_str:<12} | {cta_score:<14} | {person_type:<20}")
 
-    print("=" * 95 + "\n")
+    print("=" * 125 + "\n")
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 """
 Analiz Sonuç Entity'leri
 =========================
-Bilgi Kaybı ve Anlamsal Benzerlik Analiz Sonuç Domain Nesneleri.
+Bilgi Kaybı, Anlamsal Benzerlik ve Eylem Çağrısı (CTA) Analiz Sonuç Domain Nesneleri.
 """
 
 from typing import Optional, List, Dict
@@ -28,6 +28,19 @@ class SemanticSimilarityResult(BaseModel):
     topic_preserved: bool = Field(..., description="Konu korunmuş mu?")
 
 
+class CTAResult(BaseModel):
+    """2.4 Eylem Çağrısı (CTA) Analiz Sonucu."""
+
+    channel: ChannelType
+    has_cta: bool = Field(..., description="Eylem çağrısı var mı?")
+    verb_count: int = Field(0, description="Toplam fiil sayısı")
+    all_verbs: List[str] = Field(default_factory=list, description="Yakalanan tüm fiiller")
+    cta_words: List[str] = Field(default_factory=list, description="Ayrıştırılan CTA fiilleri")
+    strength_score: float = Field(0.0, description="Normalized CTA şiddet skoru (0.0 - 1.0)")
+    strength_text: str = Field("0/0", description="Şiddet puan metni (Örn: 10/15)")
+    person_type: str = Field("Yok", description="Hitap türü (Sen / Siz / Tavsiye / Yok)")
+
+
 class CombinedAnalysisResult(BaseModel):
     """Mecra bazlı birleştirilmiş analiz sonucu."""
 
@@ -37,3 +50,4 @@ class CombinedAnalysisResult(BaseModel):
     transformed_content: str
     info_loss: InfoLossResult
     semantic_similarity: SemanticSimilarityResult
+    cta: CTAResult

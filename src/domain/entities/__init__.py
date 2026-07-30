@@ -3,6 +3,7 @@ from src.domain.entities.message import CoreMessage, TransformedMessage
 from src.domain.entities.analysis_result import (
     InfoLossResult,
     SemanticSimilarityResult,
+    CTAResult,
     CombinedAnalysisResult,
 )
 
@@ -13,5 +14,6 @@ __all__ = [
     "TransformedMessage",
     "InfoLossResult",
     "SemanticSimilarityResult",
+    "CTAResult",
     "CombinedAnalysisResult",
 ]

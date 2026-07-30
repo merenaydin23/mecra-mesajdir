@@ -15,9 +15,11 @@ from src.domain.entities.message import CoreMessage, TransformedMessage
 from src.domain.entities.analysis_result import (
     InfoLossResult,
     SemanticSimilarityResult,
+    CTAResult,
     CombinedAnalysisResult,
 )
 from src.domain.services.analyzer_service_interface import AnalyzerServiceInterface
+from src.infrastructure.analyzers.cta_analyzer import CTAAnalyzer
 
 
 # ==========================================
@@ -60,20 +62,16 @@ ULTRA_SAYI_PATTERN = (
     rf"|\b{YAZIYLA_SAYI}(?:\s*{CARPANLAR})?(?:\s*{PARA_BIRIMLERI})?\b"
 )
 
-TR_BIRLER = {"bir": 1, "iki": 2, "üç": 3, "uc": 3, "dört": 4, "dort": 4, "beş": 5, "bes": 5, "altı": 6, "alti": 6, "yedi": 7, "sekiz": 8, "dokuz": 9}
-TR_ONLAR = {"on": 10, "yirmi": 20, "otuz": 30, "kırk": 40, "kirk": 40, "elli": 50, "altmış": 60, "altmis": 60, "yetmiş": 70, "yetmis": 70, "seksen": 80, "doksan": 90}
-TR_SCALE = {"yüz": 100, "yuz": 100, "bin": 1000, "milyon": 10**6, "milyar": 10**9, "trilyon": 10**12}
-CARPAN_ÇARPANLARI = {"trilyon": 10**12, "milyar": 10**9, "milyon": 10**6, "bin": 1000, "mln": 10**6, "mlr": 10**9, "mn": 10**6, "bn": 1000, "b": 1000, "m": 10**6, "k": 1000}
-
 
 class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
-    """Anlamsal Benzerlik ve Bilgi Kaybı Analiz Servisi."""
+    """Anlamsal Benzerlik, Bilgi Kaybı ve CTA Analiz Servisi."""
 
     def __init__(self):
         self._nli_tokenizer = None
         self._nli_model = None
         self._embed_model = None
         self._nlp_ner = None
+        self._cta_analyzer = CTAAnalyzer()
         self._models_loaded = False
 
     def _load_models(self):
@@ -300,6 +298,9 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
             topic_preserved=topic_preserved,
         )
 
+        # 5. CTA Analizi
+        cta_res = self._cta_analyzer.analyze(transformed)
+
         return CombinedAnalysisResult(
             channel=transformed.channel,
             channel_name=CHANNEL_NAMES.get(transformed.channel, transformed.channel.value),
@@ -307,6 +308,7 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
             transformed_content=target_text,
             info_loss=info_loss_res,
             semantic_similarity=semantic_res,
+            cta=cta_res,
         )
 
     async def analyze_all(
