@@ -1,7 +1,7 @@
 """
 Analiz Sonuç Entity'leri
 =========================
-Bilgi Kaybı, Anlamsal Benzerlik ve Eylem Çağrısı (CTA) Analiz Sonuç Domain Nesneleri.
+Bilgi Kaybı, Anlamsal Benzerlik, Eylem Çağrısı (CTA) ve Duygu Yoğunluğu Analiz Sonuç Domain Nesneleri.
 """
 
 from typing import Optional, List, Dict
@@ -41,6 +41,18 @@ class CTAResult(BaseModel):
     person_type: str = Field("Yok", description="Hitap türü (Sen / Siz / Tavsiye / Yok)")
 
 
+class SentimentResult(BaseModel):
+    """2.2 Duygu Yoğunluğu Analiz Sonucu."""
+
+    channel: ChannelType
+    label: str = Field(..., description="Duygu etiketi (POS / NEG)")
+    pos_prob: float = Field(..., description="Pozitif olma olasılığı (0.0 - 1.0)")
+    neg_prob: float = Field(..., description="Negatif olma olasılığı (0.0 - 1.0)")
+    emoji_count: int = Field(0, description="Metindeki emoji sayısı")
+    punct_count: int = Field(0, description="Vurgulu noktalama (!, ?) sayısı")
+    intensity_score: float = Field(..., description="Duygu yoğunluğu skoru (0.0 - 1.0)")
+
+
 class CombinedAnalysisResult(BaseModel):
     """Mecra bazlı birleştirilmiş analiz sonucu."""
 
@@ -51,3 +63,4 @@ class CombinedAnalysisResult(BaseModel):
     info_loss: InfoLossResult
     semantic_similarity: SemanticSimilarityResult
     cta: CTAResult
+    sentiment: SentimentResult

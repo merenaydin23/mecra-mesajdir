@@ -16,10 +16,12 @@ from src.domain.entities.analysis_result import (
     InfoLossResult,
     SemanticSimilarityResult,
     CTAResult,
+    SentimentResult,
     CombinedAnalysisResult,
 )
 from src.domain.services.analyzer_service_interface import AnalyzerServiceInterface
 from src.infrastructure.analyzers.cta_analyzer import CTAAnalyzer
+from src.infrastructure.analyzers.sentiment_analyzer import SentimentAnalyzer
 
 
 # ==========================================
@@ -64,7 +66,7 @@ ULTRA_SAYI_PATTERN = (
 
 
 class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
-    """Anlamsal Benzerlik, Bilgi Kaybı ve CTA Analiz Servisi."""
+    """Anlamsal Benzerlik, Bilgi Kaybı, CTA ve Duygu Analiz Servisi."""
 
     def __init__(self):
         self._nli_tokenizer = None
@@ -72,6 +74,7 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
         self._embed_model = None
         self._nlp_ner = None
         self._cta_analyzer = CTAAnalyzer()
+        self._sentiment_analyzer = SentimentAnalyzer()
         self._models_loaded = False
 
     def _load_models(self):
@@ -301,6 +304,9 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
         # 5. CTA Analizi
         cta_res = self._cta_analyzer.analyze(transformed)
 
+        # 6. Duygu Yoğunluğu Analizi
+        sentiment_res = self._sentiment_analyzer.analyze(transformed)
+
         return CombinedAnalysisResult(
             channel=transformed.channel,
             channel_name=CHANNEL_NAMES.get(transformed.channel, transformed.channel.value),
@@ -309,6 +315,7 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
             info_loss=info_loss_res,
             semantic_similarity=semantic_res,
             cta=cta_res,
+            sentiment=sentiment_res,
         )
 
     async def analyze_all(
