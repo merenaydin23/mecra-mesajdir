@@ -217,34 +217,34 @@ function renderPlatformCards() {
     };
 
     const cardHtml = `
-      <div onclick="openExpandedCardModal('${platform.id}')" class="corporate-card p-5 flex flex-col justify-between hover:border-[#00A3A6] hover:-translate-y-1 hover:shadow-xl cursor-pointer transition-all duration-200 group">
+      <div onclick="openExpandedCardModal('${platform.id}')" class="corporate-card p-6 flex flex-col justify-between hover:border-[#00A3A6] hover:-translate-y-1 hover:shadow-xl cursor-pointer transition-all duration-300 group rounded-2xl border border-slate-200/90 bg-white">
         <div>
-          <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
-            <div class="flex items-center space-x-2">
-              <div class="p-2 rounded-lg bg-teal-50 text-[#00A3A6] group-hover:bg-[#00A3A6] group-hover:text-white transition-colors">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+            <div class="flex items-center space-x-2.5">
+              <div class="p-2.5 rounded-xl bg-teal-50 text-[#00A3A6] group-hover:bg-[#00A3A6] group-hover:text-white transition-colors">
                 <i data-lucide="${platform.icon}" class="w-4 h-4"></i>
               </div>
               <div>
-                <h4 class="font-semibold text-slate-800 text-sm group-hover:text-[#00A3A6] transition-colors">${platform.name}</h4>
-                <span class="text-xs text-slate-600">${platform.category}</span>
+                <h4 class="font-bold text-slate-800 text-sm group-hover:text-[#00A3A6] transition-colors">${platform.name}</h4>
+                <span class="text-[11px] text-slate-500 font-medium">${platform.category}</span>
               </div>
             </div>
-            <span class="text-xs px-2.5 py-1 rounded-full font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-              %${analysis.sim} Benzerlik
+            <span class="text-xs px-2.5 py-1 rounded-full font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+              %${analysis.sim} Korunum
             </span>
           </div>
 
-          <p class="text-sm text-slate-700 leading-relaxed font-normal whitespace-pre-line bg-slate-50/70 p-3 rounded-md border border-slate-100 line-clamp-4">
+          <div class="text-[14px] text-slate-700 leading-relaxed font-normal whitespace-pre-line bg-slate-50/70 p-4 rounded-xl border border-slate-200/60 font-sans space-y-2">
             ${escapeHtml(message)}
-          </p>
+          </div>
         </div>
 
-        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
-          <div class="flex items-center space-x-3">
-            <span>Duygu: <strong class="${analysis.sentiment === 'POS' ? 'text-emerald-600' : 'text-rose-600'}">${analysis.sentiment}</strong></span>
-            <span>Belirsizlik: <strong class="text-slate-700">${analysis.ambiguity}</strong></span>
+        <div class="mt-5 pt-3.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+          <div class="flex items-center space-x-3 font-medium">
+            <span>Duygu: <strong class="${analysis.sentiment === 'POS' ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}">${analysis.sentiment}</strong></span>
+            <span>Belirsizlik: <strong class="text-slate-700 font-bold">${analysis.ambiguity}</strong></span>
           </div>
-          <div class="text-[#00A3A6] group-hover:text-[#007D80] font-bold flex items-center space-x-1">
+          <div class="text-[#00A3A6] group-hover:text-[#007D80] font-bold flex items-center space-x-1.5 bg-teal-50 px-2.5 py-1 rounded-md">
             <span>Büyüt & Detay</span>
             <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
           </div>
@@ -364,32 +364,26 @@ function renderDiffViewer() {
 }
 
 // Kelime Fark Algoritması (LCS tabanlı diff)
-function computeWordDiff(orig, target) {
-  const result = [];
-  const origSet = new Set(orig.map(w => w.toLowerCase()));
-  const targetSet = new Set(target.map(w => w.toLowerCase()));
-
-  orig.forEach(w => {
-    if (!targetSet.has(w.toLowerCase())) {
-      result.push({ type: 'removed', word: w });
-    } else {
-      result.push({ type: 'same', word: w });
+function computeWordDiff(arr1, arr2) {
+  const diff = [];
+  let i = 0, j = 0;
+  while (i < arr1.length || j < arr2.length) {
+    if (i < arr1.length && j < arr2.length && arr1[i] === arr2[j]) {
+      diff.push({ type: 'same', word: arr1[i] });
+      i++; j++;
+    } else if (j < arr2.length && (!arr1.includes(arr2[j], i) || arr2.indexOf(arr1[i], j) > j)) {
+      diff.push({ type: 'added', word: arr2[j] });
+      j++;
+    } else if (i < arr1.length) {
+      diff.push({ type: 'removed', word: arr1[i] });
+      i++;
     }
-  });
-
-  target.forEach(w => {
-    if (!origSet.has(w.toLowerCase())) {
-      result.push({ type: 'added', word: w });
-    }
-  });
-
-  return result;
+  }
+  return diff;
 }
 
-// Chart.js Analiz Grafikleri (Sayfa 2)
+// Radar Chart Yönetimi
 let radarChartInstance = null;
-let barChartInstance = null;
-
 function renderAnalyticsCharts() {
   renderRadarChart();
   renderBarChart();
@@ -403,57 +397,40 @@ function renderRadarChart() {
     radarChartInstance.destroy();
   }
 
-  const labels = ['Duygu Yoğunluğu', 'Belirsizlik', 'CTA Gücü', 'Anlamsal Benzerlik', 'Bilgi Korunumu'];
+  const platforms = PLATFORMS_CONFIG.map(p => p.name.split(' ')[0]);
+  const simScores = appState.analysisResults.map(a => a.sim);
 
   radarChartInstance = new Chart(ctx, {
     type: 'radar',
     data: {
-      labels: labels,
-      datasets: [
-        {
-          label: 'Basın Açıklaması',
-          data: [0.65, 0.15, 0.40, 0.92, 0.95],
-          backgroundColor: 'rgba(0, 163, 166, 0.2)',
-          borderColor: '#00A3A6',
-          borderWidth: 2,
-          pointBackgroundColor: '#00A3A6'
-        },
-        {
-          label: 'X (Twitter)',
-          data: [0.90, 0.35, 0.85, 0.78, 0.70],
-          backgroundColor: 'rgba(227, 10, 23, 0.15)',
-          borderColor: '#E30A17',
-          borderWidth: 2,
-          pointBackgroundColor: '#E30A17'
-        },
-        {
-          label: 'LinkedIn',
-          data: [0.75, 0.25, 0.60, 0.85, 0.88],
-          backgroundColor: 'rgba(15, 23, 42, 0.15)',
-          borderColor: '#0F172A',
-          borderWidth: 2,
-          pointBackgroundColor: '#0F172A'
-        }
-      ]
+      labels: platforms,
+      datasets: [{
+        label: 'Anlamsal Korunum (%)',
+        data: simScores,
+        backgroundColor: 'rgba(0, 163, 166, 0.2)',
+        borderColor: '#00A3A6',
+        pointBackgroundColor: '#00A3A6',
+        pointBorderColor: '#fff',
+        pointHoverBackgroundColor: '#fff',
+        pointHoverBorderColor: '#00A3A6'
+      }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
         r: {
-          angleLines: { color: '#e2e8f0' },
-          grid: { color: '#f1f5f9' },
-          pointLabels: { font: { family: 'Inter', size: 11, weight: '600' }, color: '#0F172A' },
-          ticks: { backdropColor: 'transparent', color: '#64748b' }
+          angleLines: { color: 'rgba(0,0,0,0.05)' },
+          suggestedMin: 50,
+          suggestedMax: 100
         }
-      },
-      plugins: {
-        legend: { position: 'bottom', labels: { font: { family: 'Inter', size: 12 } } }
       }
     }
   });
 }
 
+// Bar Chart Yönetimi
+let barChartInstance = null;
 function renderBarChart() {
   const ctx = document.getElementById('barChart');
   if (!ctx) return;
@@ -565,20 +542,25 @@ function escapeHtml(str) {
     .replace(/'/g, "&#039;");
 }
 
-// Mock Dönüştürme & Analiz Üreteci
+// Mock Dönüştürme & Analiz Üreteci (Mecralara Özgü Farklı Metin Uzunlukları & Okunabilir Paragraflar)
 function generateMockTransformation(core) {
-  const isSnow = core.includes("kar") || core.includes("tatil") || core.includes("okul");
-
   return {
     transformedMessages: {
-      press_release: `T.C. Elazığ Valiliği Basın Açıklaması:\n\nİlimiz genelinde devam eden olumsuz hava koşulları ve meteorolojik tahminler doğrultusunda, 2026 yarın günü il genelindeki tüm temel eğitim ve ortaöğretim kurumlarında eğitime 1 (bir) gün süreyle ara verilmiştir. Kamuoyuna duyurulur.`,
-      agency_news: `[FLAŞ] ELAZIĞ - Son dakika haberine göre Elazığ genelinde etkisini artıran kar yağışı nedeniyle yarın tüm okulların 1 gün süreyle tatil edildiği bildirildi. Valilikten alınan bilgiye göre ulaşımda aksamaların önüne geçilmesi hedefleniyor.`,
-      tabloid: `ELAZIĞ'DA KAR ALARMI! Öğrencilere müjdeli haber geldi! Termometreler sıfırın altına düştü, okullar yarın tamamen kilitlendi!`,
-      x_twitter: `🚨 ELAZIĞ'DA OKULLAR TATİL! \n\nYoğun kar yağışı nedeniyle yarın (1 gün) il genelinde okullar tatil edilmiştir. Aman yollara dikkat! ❄️📚 #Elazığ #KarTatili #SonDakika`,
-      linkedin: `Bölgesel hava koşullarındaki gelişmeler ve iş sağlığı güvenliği prensiplerimiz doğrultusunda Elazığ lokasyonumuzdaki eğitim kurumlarında eğitime 1 gün ara verilmiştir. Tüm paydaşlarımıza emniyetli günler dileriz. #Eğitim #İşGüvenliği`,
-      vertical_video: `[Sahne 1 - 0-3sn] Görsel: Şok olmuş öğrenci yüzü | Metin: ELAZIĞ'DA TATİL GELDİ! 😱 | Ses: "Arkadaşlar duydunuz mu yarın okullar yok!"\n[Sahne 2] Görsel: Kar manzarası | Metin: 1 Gün Kar Tatili ❄️`,
-      messaging_chain: `Arkadaşlar Elazığ'da kar nedeniyle yarın okullar tatil edilmiş, bilginiz olsun gruba da iletin ❄️`,
-      official_letter: `Sayı: 75249013-010.06-E.2026/4108\nTarih: 30.07.2026\nKonu: Olumsuz Hava Koşulları Nedeniyle Eğitime Ara Verilmesi\n\nELAZIĞ İL MİLLİ EĞİTİM MÜDÜRLÜĞÜNE\n\nİlimiz genelinde seyreden yoğun kar yağışı ve olumsuz hava koşulları sebebiyle yarın eğitime 1 gün süreyle ara verilmesi uygun görülmüştür.\n\nAyşe Yıldız\nOkul Müdürü / Şube Müdürü`
+      press_release: `T.C. ELAZIĞ VALİLİĞİ BASIN AÇIKLAMASI\n\nİlimiz genelinde devam eden yoğun meteorolojik gelişmeler ve kar yağışı değerlendirilmiş olup, ulaşımda yaşanabilecek buzlanma ve kaza risklerine karşı tedbir amaçlı kararlar alınmıştır.\n\n31 Temmuz 2026 Cuma günü ilimiz genelindeki tüm anaokulu, ilkokul, ortaokul ve lise düzeyindeki eğitim kurumlarında eğitime 1 (bir) gün süreyle ara verilmiştir.\n\nKamu bünyesinde görev yapmakta olan hamile, engelli ve kronik rahatsızlığı bulunan personellerimiz idari izinli sayılacaktır. Vatandaşlarımızın resmi duyuruları takip etmeleri önemle rica olunur.`,
+      
+      agency_news: `[SON DAKİKA HABERİ] ELAZIĞ - Elazığ'da etkisini artıran olumsuz hava koşulları ve kar yağışı nedeniyle il genelindeki tüm okullarda eğitime yarın 1 gün süreyle ara verildi.\n\nValilik İl Hıfzıssıhha Kurulu tarafından yapılan açıklamada, buzlanma ve don olaylarına karşı sürücülerin zincir ve kış lastiği olmadan yola çıkmamaları konusunda uyarıda bulunuldu. Ekipler kar küreme çalışmalarına devam ediyor.`,
+      
+      tabloid: `ELAZIĞ'DA KAR ALARMI! Öğrencilere Müjdeli Haber Son Dakika Geldi! 😱❄️\n\nTermometreler sıfırın altına düştü, kar fırtınası şehri esir aldı! Valilikten gelen karar ile okullar yarın tamamen tatil edildi. Sürücülere aman dikkat uyarısı yapıldı!`,
+      
+      x_twitter: `🚨 ELAZIĞ'DA OKULLAR TATİL! ❄️📚\n\nİlimiz genelinde devam eden yoğun kar yağışı ve buzlanma riski nedeniyle yarın (1 gün) tüm okullarda eğitime ara verilmiştir.\n\nSürücülerimizin dikkatli olmaları önemle rica olunur.\n\n#Elazığ #KarTatili #SonDakika`,
+      
+      linkedin: `Bölgesel hava koşullarındaki gelişmeler ve kamu sağlığı önceliklerimiz doğrultusunda Elazığ lokasyonumuzdaki eğitim kurumlarında eğitime 1 gün süreyle ara verilmiştir.\n\nKurumsal iş sürekliliği ve çalışan güvenliği esaslarımız çerçevesinde hamile ve engelli personellerimiz idari izinli sayılacaktır.\n\n#Kamuİletişimi #KrizYönetimi #İşSağlığıVeGüvenliği`,
+      
+      vertical_video: `🎬 [VİDEO SENARYOSU - Reels / Shorts / TikTok]\n\n[00:00 - 00:03] 🚨 Görsel: Karlı Elazığ manzarası\nMetin: "ELAZIĞ'DA OKULLAR TATİL!"\nVoiceover: "Öğrenciler dikkat! Elazığ Valiliği'nden son dakika kararı geldi!"\n\n[00:03 - 00:07] ❄️ Görsel: Kar küreme aracı\nMetin: "1 Gün Eğitime Ara Verildi"\nVoiceover: "Buzlanma riski nedeniyle yarın tüm okullar tatil."`,
+      
+      messaging_chain: `Arkadaşlar Elazığ Valiliği açıklama yaptı, kar yağışı nedeniyle yarın tüm okullar 1 gün tatil edilmiş ❄️ Hamile ve engelli çalışanlar da izinliymiş, bilgisi olmayan arkadaşlara iletelim lütfen 👍`,
+      
+      official_letter: `T.C. ELAZIĞ VALİLİĞİ\nİl Milli Eğitim Müdürlüğü\nSayı : E-75249013-010.06-2026/4108\nTarih: 30.07.2026\nKonu : Meteorolojik Koşullar Sebebiyle Eğitime Ara Verilmesi\n\nİLGİLİ MAKAMA VE TÜM EĞİTİM KURUMLARINA\n\nİlimiz Meteoroloji Bölge Müdürlüğünden alınan son veriler doğrultusunda, gece saatlerinden itibaren etkisini artırması beklenen olumsuz hava şartları ve yoğun buzlanma riski değerlendirilmiştir.\n\nBu kapsamda ilimiz genelindeki tüm resmi ve özel okul öncesi, ilköğretim ve ortaöğretim kurumlarında 31.07.2026 tarihinde eğitime 1 (bir) gün süreyle ara verilmesi uygun görülmüştür.\n\nBilgilerinizi ve gereğini rica ederim.\n\nAyşe YILDIZ\nVali a. / İl Milli Eğitim Müdürü V.`
     },
     analysisResults: [
       { channel: 'press_release', sim: 94.2, loss: 'Hayır', cta: 'Hayır', sentiment: 'POS', ambiguity: 'Düşük' },
@@ -591,9 +573,9 @@ function generateMockTransformation(core) {
       { channel: 'official_letter', sim: 95.6, loss: 'Hayır', cta: 'Hayır', sentiment: 'POS', ambiguity: 'Düşük' }
     ],
     degradationChain: [
-      { step: 1, channel: 'press_release', sim: 0.942, dev: 0.058, cum: 0.942, is_bp: false },
-      { step: 2, channel: 'agency_news', sim: 0.915, dev: 0.085, cum: 0.915, is_bp: false },
-      { step: 3, channel: 'official_letter', sim: 0.956, dev: 0.044, cum: 0.956, is_bp: false },
+      { step: 1, channel: 'official_letter', sim: 0.956, dev: 0.044, cum: 0.956, is_bp: false },
+      { step: 2, channel: 'press_release', sim: 0.942, dev: 0.058, cum: 0.942, is_bp: false },
+      { step: 3, channel: 'agency_news', sim: 0.915, dev: 0.085, cum: 0.915, is_bp: false },
       { step: 4, channel: 'x_twitter', sim: 0.864, dev: 0.136, cum: 0.864, is_bp: false },
       { step: 5, channel: 'tabloid', sim: 0.728, dev: 0.272, cum: 0.728, is_bp: true }
     ]
