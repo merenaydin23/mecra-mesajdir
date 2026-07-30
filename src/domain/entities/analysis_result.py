@@ -1,7 +1,7 @@
 """
 Analiz Sonuç Entity'leri
 =========================
-Bilgi Kaybı, Anlamsal Benzerlik, Eylem Çağrısı (CTA) ve Duygu Yoğunluğu Analiz Sonuç Domain Nesneleri.
+Bilgi Kaybı, Anlamsal Benzerlik, Eylem Çağrısı (CTA), Duygu Yoğunluğu ve Belirsizlik Analiz Sonuç Domain Nesneleri.
 """
 
 from typing import Optional, List, Dict
@@ -53,6 +53,17 @@ class SentimentResult(BaseModel):
     intensity_score: float = Field(..., description="Duygu yoğunluğu skoru (0.0 - 1.0)")
 
 
+class AmbiguityResult(BaseModel):
+    """2.3 Belirsizlik Analiz Sonucu."""
+
+    channel: ChannelType
+    ambiguity_score: float = Field(..., description="Belirsizlik skoru (0.0 - 1.0)")
+    clarity_score: float = Field(..., description="Netlik skoru (0.0 - 1.0)")
+    level: str = Field(..., description="Belirsizlik seviyesi (Düşük / Orta / Yüksek)")
+    most_ambiguous_sentence: str = Field("", description="En belirsiz bulunan cümle")
+    sentence_details: List[dict] = Field(default_factory=list, description="Cümle bazlı detaylar")
+
+
 class CombinedAnalysisResult(BaseModel):
     """Mecra bazlı birleştirilmiş analiz sonucu."""
 
@@ -64,3 +75,4 @@ class CombinedAnalysisResult(BaseModel):
     semantic_similarity: SemanticSimilarityResult
     cta: CTAResult
     sentiment: SentimentResult
+    ambiguity: AmbiguityResult

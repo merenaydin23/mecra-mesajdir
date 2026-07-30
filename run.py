@@ -2,7 +2,7 @@
 Mecra Mesajdır - Test ve Çalıştırma Script'i
 ==============================================
 1. LLM ile Çekirdek Mesajı 8 Farklı Mecraya Dönüştürür.
-2. Üretilen Mecra Mesajlarının Anlamsal Benzerlik, Bilgi Kaybı, CTA ve Duygu Yoğunluğu Analizini Yapar.
+2. Üretilen Mecra Mesajlarının Anlamsal Benzerlik, Bilgi Kaybı, CTA, Duygu Yoğunluğu ve Belirsizlik Analizini Yapar.
 """
 
 import os
@@ -20,9 +20,9 @@ from src.application.use_cases.analyze_messages_use_case import AnalyzeMessagesU
 
 
 async def main():
-    print("=================================================================================================================")
+    print("=========================================================================================================================")
     print("📡 MECRA MESAJDIR — LLM ÇOKLU MECRA DÖNÜŞTÜRÜCÜ & ANALİZ PLATFORMU")
-    print("=================================================================================================================\n")
+    print("=========================================================================================================================\n")
 
     # API Key kontrolü
     if not os.getenv("LLM_API_KEY"):
@@ -48,9 +48,9 @@ async def main():
         print(f"--------------------------------------------------")
         print(f"{msg.transformed_content}\n")
 
-    # 3. ADIM 2: ANALİZ SÜRECİ (Anlamsal Benzerlik, Bilgi Kaybı, CTA & Duygu Yoğunluğu)
-    print("=================================================================================================================")
-    print("⏳ ADIM 2: LLM çıktıları üzerinde Anlamsal Benzerlik, Bilgi Kaybı, CTA ve Duygu Yoğunluğu Analizi yapılıyor...\n")
+    # 3. ADIM 2: ANALİZ SÜRECİ (Benzerlik, Bilgi Kaybı, CTA, Duygu Yoğunluğu & Belirsizlik)
+    print("=========================================================================================================================")
+    print("⏳ ADIM 2: LLM çıktıları üzerinde Anlamsal Benzerlik, Bilgi Kaybı, CTA, Duygu Yoğunluğu ve Belirsizlik Analizi yapılıyor...\n")
 
     analyzer_service = SemanticAndInfoLossAnalyzer()
     analyze_use_case = AnalyzeMessagesUseCase(analyzer_service=analyzer_service)
@@ -58,9 +58,9 @@ async def main():
     analysis_results = await analyze_use_case.execute(core_message, transformed_messages)
 
     # 4. SONUÇ RAPORU TABLOSU
-    print("\n" + "=" * 145)
-    print(f"{'MECRA ADI':<28} | {'BENZERLİK (%)':<15} | {'KAYIP?':<8} | {'CTA?':<8} | {'CTA ŞİDDETİ':<12} | {'DUYGU':<8} | {'DUYGU YOĞUNLUĞU':<16}")
-    print("=" * 145)
+    print("\n" + "=" * 165)
+    print(f"{'MECRA ADI':<26} | {'BENZERLİK (%)':<14} | {'KAYIP?':<8} | {'CTA?':<8} | {'CTA ŞİDDETİ':<12} | {'DUYGU':<8} | {'BELİRSİZLİK':<14} | {'BELİRSİZLİK SEVİYESİ':<20}")
+    print("=" * 165)
 
     for res in analysis_results:
         sim_str = f"%{res.semantic_similarity.semantic_similarity_percentage:.1f}"
@@ -68,10 +68,11 @@ async def main():
         cta_str = "Evet ✅" if res.cta.has_cta else "Hayır ❌"
         cta_score = res.cta.strength_text
         senti_label = res.sentiment.label
-        senti_intensity = f"{res.sentiment.intensity_score:.4f}"
-        print(f"{res.channel_name:<28} | {sim_str:<15} | {loss_str:<8} | {cta_str:<8} | {cta_score:<12} | {senti_label:<8} | {senti_intensity:<16}")
+        amb_score = f"{res.ambiguity.ambiguity_score:.4f}"
+        amb_level = res.ambiguity.level
+        print(f"{res.channel_name:<26} | {sim_str:<14} | {loss_str:<8} | {cta_str:<8} | {cta_score:<12} | {senti_label:<8} | {amb_score:<14} | {amb_level:<20}")
 
-    print("=" * 145 + "\n")
+    print("=" * 165 + "\n")
 
 
 if __name__ == "__main__":
