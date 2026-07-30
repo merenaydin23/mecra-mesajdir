@@ -1,27 +1,28 @@
 """
 Mesaj Analiz Use Case (Application Katmanı)
 ===========================================
-Dönüştürülmüş mecraların Anlamsal Benzerlik ve Bilgi Kaybı analizini yürütür.
+Dönüştürülmüş mecraların tüm analizlerini ve Bozulma Zinciri analizini yürütür.
 """
 
-from typing import List
+from typing import List, Tuple
 
 from src.domain.entities.message import CoreMessage, TransformedMessage
-from src.domain.entities.analysis_result import CombinedAnalysisResult
+from src.domain.entities.analysis_result import CombinedAnalysisResult, DegradationChainResult
 from src.domain.services.analyzer_service_interface import AnalyzerServiceInterface
 
 
 class AnalyzeMessagesUseCase:
-    """Anlamsal Benzerlik ve Bilgi Kaybı Analiz Kullanım Senaryosu."""
+    """Mesaj Analiz Kullanım Senaryosu."""
 
     def __init__(self, analyzer_service: AnalyzerServiceInterface):
         self._analyzer_service = analyzer_service
 
     async def execute(
         self, core_message: CoreMessage, transformed_messages: List[TransformedMessage]
-    ) -> List[CombinedAnalysisResult]:
+    ) -> Tuple[List[CombinedAnalysisResult], DegradationChainResult]:
         """
-        LLM tarafında üretilen tüm mecra mesajlarını alır ve
-        anlamsal benzerlik ile bilgi kaybı analizlerini gerçekleştirir.
+        LLM tarafında üretilen tüm mecra mesajlarını alır,
+        anlamsal benzerlik, bilgi kaybı, CTA, duygu, belirsizlik ve
+        Bozulma Zinciri (MMD) analizlerini gerçekleştirir.
         """
         return await self._analyzer_service.analyze_all(core_message, transformed_messages)

@@ -1,7 +1,7 @@
 """
 Analiz Sonuç Entity'leri
 =========================
-Bilgi Kaybı, Anlamsal Benzerlik, Eylem Çağrısı (CTA), Duygu Yoğunluğu ve Belirsizlik Analiz Sonuç Domain Nesneleri.
+Bilgi Kaybı, Anlamsal Benzerlik, Eylem Çağrısı (CTA), Duygu Yoğunluğu, Belirsizlik ve Bozulma Zinciri Analiz Sonuç Domain Nesneleri.
 """
 
 from typing import Optional, List, Dict
@@ -62,6 +62,29 @@ class AmbiguityResult(BaseModel):
     level: str = Field(..., description="Belirsizlik seviyesi (Düşük / Orta / Yüksek)")
     most_ambiguous_sentence: str = Field("", description="En belirsiz bulunan cümle")
     sentence_details: List[dict] = Field(default_factory=list, description="Cümle bazlı detaylar")
+
+
+class DegradationStep(BaseModel):
+    """2.6 Bozulma Zinciri Tekil Adım Nesnesi."""
+
+    step_index: int = Field(..., description="Zincirdeki mecra sırası (1, 2, ...)")
+    channel: ChannelType
+    channel_name: str
+    consecutive_similarity: float = Field(..., description="Ardışık kosinüs benzerliği (Mn - Mn-1)")
+    consecutive_deviation: float = Field(..., description="Ardışık sapma Delta (1 - benzerlik)")
+    cumulative_similarity: float = Field(..., description="Kümülatif benzerlik (Mn - M0)")
+    is_breaking_point: bool = Field(False, description="Kırılma Noktası (Breaking Point - BP) mi?")
+    is_close_contender: bool = Field(False, description="BP'ye yakın rakip mi?")
+
+
+class DegradationChainResult(BaseModel):
+    """2.6 Bozulma Zinciri (Message Degradation Chain) Analiz Sonucu."""
+
+    steps: List[DegradationStep] = Field(default_factory=list, description="Zincir adımları")
+    has_breaking_point: bool = Field(False, description="Belirgin bir kırılma noktası var mı?")
+    breaking_point_channel: Optional[str] = Field(None, description="Kırılma noktasındaki mecra adı")
+    max_consecutive_deviation: float = Field(0.0, description="Maksimum ardışık sapma (Delta)")
+    close_contenders: List[str] = Field(default_factory=list, description="BP'ye yakın rakip mecralar")
 
 
 class CombinedAnalysisResult(BaseModel):

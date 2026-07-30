@@ -1,14 +1,14 @@
 """
 Analiz Servisi Arayüzü (Analyzer Service Interface)
 ====================================================
-Anlamsal Benzerlik ve Bilgi Kaybı Analiz Servisi Arayüzü.
+Anlamsal Benzerlik, Bilgi Kaybı, CTA, Duygu ve Bozulma Zinciri Analiz Servisi Arayüzü.
 """
 
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Tuple
 
 from src.domain.entities.message import CoreMessage, TransformedMessage
-from src.domain.entities.analysis_result import CombinedAnalysisResult
+from src.domain.entities.analysis_result import CombinedAnalysisResult, DegradationChainResult
 
 
 class AnalyzerServiceInterface(ABC):
@@ -24,6 +24,6 @@ class AnalyzerServiceInterface(ABC):
     @abstractmethod
     async def analyze_all(
         self, core: CoreMessage, transformed_list: List[TransformedMessage]
-    ) -> List[CombinedAnalysisResult]:
-        """Çekirdek mesaj ile dönüştürülmüş tüm mesajlar için analizi yapar."""
+    ) -> Tuple[List[CombinedAnalysisResult], DegradationChainResult]:
+        """Çekirdek mesaj ile tüm dönüştürülmüş mecralar için analizleri ve Bozulma Zinciri analizini yapar."""
         pass

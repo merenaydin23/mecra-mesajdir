@@ -18,12 +18,14 @@ from src.domain.entities.analysis_result import (
     CTAResult,
     SentimentResult,
     AmbiguityResult,
+    DegradationChainResult,
     CombinedAnalysisResult,
 )
 from src.domain.services.analyzer_service_interface import AnalyzerServiceInterface
 from src.infrastructure.analyzers.cta_analyzer import CTAAnalyzer
 from src.infrastructure.analyzers.sentiment_analyzer import SentimentAnalyzer
 from src.infrastructure.analyzers.ambiguity_analyzer import AmbiguityAnalyzer
+from src.infrastructure.analyzers.degradation_chain_analyzer import DegradationChainAnalyzer
 
 
 # ==========================================
@@ -68,7 +70,7 @@ ULTRA_SAYI_PATTERN = (
 
 
 class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
-    """Anlamsal Benzerlik, Bilgi Kaybı, CTA, Duygu ve Belirsizlik Analiz Servisi."""
+    """Anlamsal Benzerlik, Bilgi Kaybı, CTA, Duygu, Belirsizlik ve Bozulma Zinciri Servisi."""
 
     def __init__(self):
         self._nli_tokenizer = None
@@ -78,6 +80,7 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
         self._cta_analyzer = CTAAnalyzer()
         self._sentiment_analyzer = SentimentAnalyzer()
         self._ambiguity_analyzer = AmbiguityAnalyzer()
+        self._degradation_analyzer = DegradationChainAnalyzer()
         self._models_loaded = False
 
     def _load_models(self):
@@ -327,10 +330,14 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
 
     async def analyze_all(
         self, core: CoreMessage, transformed_list: List[TransformedMessage]
-    ) -> List[CombinedAnalysisResult]:
-        """Tüm dönüştürülmüş mecralar için sırayla analiz yapar."""
+    ) -> Tuple[List[CombinedAnalysisResult], DegradationChainResult]:
+        """Tüm dönüştürülmüş mecralar için analizleri ve Bozulma Zinciri analizini yapar."""
         results = []
         for transformed in transformed_list:
             res = await self.analyze_pair(core, transformed)
             results.append(res)
-        return results
+
+        # Bozulma Zinciri (Degradation Chain) Analizi
+        degradation_result = self._degradation_analyzer.analyze_chain(core, transformed_list)
+
+        return results, degradation_result

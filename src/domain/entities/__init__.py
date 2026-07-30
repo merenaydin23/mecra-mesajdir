@@ -6,6 +6,8 @@ from src.domain.entities.analysis_result import (
     CTAResult,
     SentimentResult,
     AmbiguityResult,
+    DegradationStep,
+    DegradationChainResult,
     CombinedAnalysisResult,
 )
 
@@ -19,5 +21,7 @@ __all__ = [
     "CTAResult",
     "SentimentResult",
     "AmbiguityResult",
+    "DegradationStep",
+    "DegradationChainResult",
     "CombinedAnalysisResult",
 ]
