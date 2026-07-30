@@ -118,11 +118,39 @@ async function runTransformationAndAnalysis(coreText) {
   showToast('LLM 8 mecrada çevirme ve analiz sürecini başlattı...', 'info');
 
   try {
-    // API veya Simülasyon
-    const data = generateMockTransformation(coreText);
-
-    // Kısa bekleme animasyonu (SaaS hissiyatı)
-    await new Promise(r => setTimeout(r, 1200));
+    let data;
+    try {
+      const response = await fetch('/api/transform', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: coreText, author: "Kamu Görevlisi" })
+      });
+      if (response.ok) {
+        const apiData = await response.json();
+        const transformedObj = {};
+        const analysisArr = [];
+        apiData.platforms.forEach(p => {
+          transformedObj[p.id] = p.transformed_content;
+          analysisArr.push({
+            channel: p.id,
+            sim: Math.round((p.semantic_similarity || 85) * 10) / 10,
+            loss: p.info_loss ? 'Evet' : 'Hayır',
+            cta: p.cta_strength || 'Evet',
+            sentiment: p.sentiment || 'POS',
+            ambiguity: p.ambiguity || 'Düşük'
+          });
+        });
+        data = {
+          transformedMessages: transformedObj,
+          analysisResults: analysisArr,
+          degradationChain: apiData.degradation_chain ? apiData.degradation_chain.steps : []
+        };
+      } else {
+        data = generateMockTransformation(coreText);
+      }
+    } catch (e) {
+      data = generateMockTransformation(coreText);
+    }
 
     appState.transformedMessages = data.transformedMessages;
     appState.analysisResults = data.analysisResults;

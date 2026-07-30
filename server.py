@@ -94,12 +94,17 @@ async def transform_and_analyze(req: TransformRequest):
                         "cumulative_similarity": s.cumulative_similarity,
                         "is_breaking_point": s.is_breaking_point
                     }
-                    for s in degradation_chain.steps
                 ]
             }
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# 3. Static Files (Frontend Kurumsal Web Arayüzü)
+frontend_path = os.path.join(os.path.dirname(__file__), "frontend")
+if os.path.exists(frontend_path):
+    from fastapi.staticfiles import StaticFiles
+    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
 
 if __name__ == "__main__":
     import uvicorn
