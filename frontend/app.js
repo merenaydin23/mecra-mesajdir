@@ -14,16 +14,66 @@ const appState = {
   degradationChain: []
 };
 
-// Mecra Tanımları & İkonları
+// Mecra Tanımları, İkonları ve Kurumsal Logoları
+const CIB_LOGO_URL = 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/%C4%B0leti%C5%9Fim_Ba%C5%9Fkanl%C4%B1%C4%9F%C4%B1_logo.svg/1280px-%C4%B0leti%C5%9Fim_Ba%C5%9Fkanl%C4%B1%C4%9F%C4%B1_logo.svg.png';
+
 const PLATFORMS_CONFIG = [
-  { id: 'press_release', name: 'Basın Açıklaması', icon: 'file-text', category: 'Kurumsal' },
-  { id: 'agency_news', name: 'Ajans Haberi (AA/İHA)', icon: 'newspaper', category: 'Medya' },
-  { id: 'tabloid', name: 'Magazin / Tabloid', icon: 'zap', category: 'Popüler Medya' },
-  { id: 'x_twitter', name: 'X (Twitter)', icon: 'twitter', category: 'Sosyal Medya' },
-  { id: 'linkedin', name: 'LinkedIn', icon: 'linkedin', category: 'Profesyonel' },
-  { id: 'vertical_video', name: 'Dikey Video (TikTok/Reels)', icon: 'video', category: 'Sosyal Medya' },
-  { id: 'messaging_chain', name: 'Mesajlaşma Zinciri (WhatsApp)', icon: 'message-circle', category: 'Anlık Mesajlaşma' },
-  { id: 'official_letter', name: 'Resmi Yazı / Dilekçe', icon: 'landmark', category: 'Resmi Bürokrasi' }
+  { 
+    id: 'press_release', 
+    name: 'Basın Açıklaması', 
+    category: 'Kurumsal Devlet', 
+    logoUrl: CIB_LOGO_URL,
+    icon: 'file-text'
+  },
+  { 
+    id: 'official_letter', 
+    name: 'Resmi Yazı / Dilekçe', 
+    category: 'Resmi Bürokrasi', 
+    logoUrl: CIB_LOGO_URL,
+    icon: 'landmark'
+  },
+  { 
+    id: 'agency_news', 
+    name: 'Ajans Haberi (AA/İHA)', 
+    category: 'Medya & Basın', 
+    svgIcon: '<svg class="w-5 h-5 text-blue-700 fill-current" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>',
+    icon: 'newspaper'
+  },
+  { 
+    id: 'x_twitter', 
+    name: 'X (Twitter)', 
+    category: 'Sosyal Medya', 
+    svgIcon: '<svg class="w-4 h-4 fill-slate-900" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
+    icon: 'twitter'
+  },
+  { 
+    id: 'linkedin', 
+    name: 'LinkedIn', 
+    category: 'Profesyonel Ağ', 
+    svgIcon: '<svg class="w-4 h-4 fill-[#0A66C2]" viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.25V10.9H6.46M7.86 6.78a1.63 1.63 0 1 0 0 3.26 1.63 1.63 0 0 0 0-3.26z"/></svg>',
+    icon: 'linkedin'
+  },
+  { 
+    id: 'vertical_video', 
+    name: 'Dikey Video (TikTok/Reels)', 
+    category: 'Sosyal Medya', 
+    svgIcon: '<svg class="w-4 h-4 fill-[#FE2C55]" viewBox="0 0 24 24"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.58.07-5.38V.02z"/></svg>',
+    icon: 'video'
+  },
+  { 
+    id: 'messaging_chain', 
+    name: 'Mesajlaşma Zinciri (WhatsApp)', 
+    category: 'Anlık Mesajlaşma', 
+    svgIcon: '<svg class="w-4 h-4 fill-[#25D366]" viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2zm.01 16.59c-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.32a8.188 8.188 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24 2.2 0 4.27.86 5.82 2.42a8.188 8.188 0 0 1 2.41 5.83c.02 4.54-3.68 8.24-8.22 8.24z"/></svg>',
+    icon: 'message-circle'
+  },
+  { 
+    id: 'tabloid', 
+    name: 'Magazin / Tabloid', 
+    category: 'Popüler Medya', 
+    svgIcon: '<svg class="w-4 h-4 fill-[#E30A17]" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>',
+    icon: 'zap'
+  }
 ];
 
 // Sayfa Yüklendiğinde Başlat
@@ -31,6 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initLucideIcons();
   initTabNavigation();
   initEventListeners();
+  renderQuickHistoryChips();
   loadDefaultData();
 });
 
@@ -216,20 +267,29 @@ function renderPlatformCards() {
       sim: 85, loss: 'Hayır', cta: 'Evet', sentiment: 'POS', ambiguity: 'Düşük'
     };
 
+    let logoHtml = '';
+    if (platform.logoUrl) {
+      logoHtml = `<img src="${platform.logoUrl}" alt="${platform.name}" class="w-6 h-6 object-contain">`;
+    } else if (platform.svgIcon) {
+      logoHtml = platform.svgIcon;
+    } else {
+      logoHtml = `<i data-lucide="${platform.icon}" class="w-4 h-4 text-[#00A3A6]"></i>`;
+    }
+
     const cardHtml = `
       <div onclick="openExpandedCardModal('${platform.id}')" class="corporate-card p-6 flex flex-col justify-between hover:border-[#00A3A6] hover:-translate-y-1 hover:shadow-xl cursor-pointer transition-all duration-300 group rounded-2xl border border-slate-200/90 bg-white">
         <div>
           <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
             <div class="flex items-center space-x-2.5">
-              <div class="p-2.5 rounded-xl bg-teal-50 text-[#00A3A6] group-hover:bg-[#00A3A6] group-hover:text-white transition-colors">
-                <i data-lucide="${platform.icon}" class="w-4 h-4"></i>
+              <div class="p-2 rounded-xl bg-slate-100/90 border border-slate-200/70 flex items-center justify-center group-hover:bg-teal-50 transition-colors shrink-0">
+                ${logoHtml}
               </div>
               <div>
                 <h4 class="font-bold text-slate-800 text-sm group-hover:text-[#00A3A6] transition-colors">${platform.name}</h4>
                 <span class="text-[11px] text-slate-500 font-medium">${platform.category}</span>
               </div>
             </div>
-            <span class="text-xs px-2.5 py-1 rounded-full font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+            <span class="text-xs px-2.5 py-1 rounded-full font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shrink-0">
               %${analysis.sim} Korunum
             </span>
           </div>
@@ -278,8 +338,16 @@ function openExpandedCardModal(platformId) {
   document.getElementById('modal-sentiment').textContent = analysis.sentiment === 'POS' ? 'Olumlu (POS)' : 'Olumsuz / Nötr';
   document.getElementById('modal-ambiguity').textContent = analysis.ambiguity;
 
-  const iconEl = document.getElementById('modal-icon');
-  if (iconEl) iconEl.setAttribute('data-lucide', platform.icon);
+  const modalIconBox = document.getElementById('modal-icon-box');
+  if (modalIconBox) {
+    if (platform.logoUrl) {
+      modalIconBox.innerHTML = `<img src="${platform.logoUrl}" alt="${platform.name}" class="w-7 h-7 object-contain">`;
+    } else if (platform.svgIcon) {
+      modalIconBox.innerHTML = platform.svgIcon;
+    } else {
+      modalIconBox.innerHTML = `<i data-lucide="${platform.icon}" class="w-6 h-6 text-[#00A3A6]"></i>`;
+    }
+  }
 
   const copyBtn = document.getElementById('modal-copy-btn');
   if (copyBtn) {
