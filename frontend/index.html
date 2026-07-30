@@ -25,25 +25,6 @@
 <body class="bg-[#F8FAFC] text-[#0F172A] flex flex-col min-h-screen relative antialiased selection:bg-[#00A3A6] selection:text-white">
 
 
-  <!-- TOP INSTITUTIONAL RIBBON (ÜST DEVLET ŞERİDİ) -->
-  <div class="bg-[#0F172A] text-slate-300 py-1.5 px-4 sm:px-6 lg:px-8 border-b border-slate-800 text-[11px] font-medium flex items-center justify-between z-50">
-    <div class="flex items-center space-x-3">
-      <span class="flex items-center space-x-1.5 text-white font-bold tracking-wider uppercase text-[10px]">
-        <span>🇹🇷 T.C. CUMHURBAŞKANLIĞI İLETİŞİM BAŞKANLIĞI</span>
-      </span>
-      <span class="text-slate-600">|</span>
-      <span class="text-slate-400 font-semibold">Bilgi İşlem Dairesi Başkanlığı</span>
-    </div>
-    <div class="hidden sm:flex items-center space-x-4 text-slate-400">
-      <span class="flex items-center gap-1.5 text-emerald-400 font-bold">
-        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-        <span>Yapay Zekâ Motoru Aktif</span>
-      </span>
-      <span>•</span>
-      <span class="font-mono text-slate-300">2026 Kurumsal Sürüm v2.4</span>
-    </div>
-  </div>
-
   <!-- ÜST NAVİGASYON VE NAVBAR -->
   <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-sm">
     <div class="w-full px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
@@ -351,13 +332,13 @@
   </main>
 
   <!-- KART DETAY & BÜYÜTME MODAL'I -->
-  <div id="card-detail-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-all duration-300">
-    <div class="corporate-card bg-white w-full max-w-3xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden transform transition-all scale-95 opacity-0" id="modal-container">
+  <div id="card-detail-modal" class="modal-overlay hidden" onclick="if(event.target === this) closeExpandedCardModal()">
+    <div class="corporate-card bg-white w-full max-w-3xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden transform transition-all scale-95 opacity-0 modal-dialog-content" id="modal-container" onclick="event.stopPropagation()">
       
       <!-- Modal Header -->
       <div class="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50">
         <div class="flex items-center space-x-3">
-          <div id="modal-icon-box" class="p-2.5 rounded-xl bg-teal-50 text-[#00A3A6] border border-teal-100">
+          <div id="modal-icon-box" class="p-2.5 rounded-xl bg-teal-50 text-[#00A3A6] border border-teal-100 flex items-center justify-center shrink-0">
             <i id="modal-icon" data-lucide="newspaper" class="w-6 h-6"></i>
           </div>
           <div>
@@ -423,13 +404,13 @@
   </div>
 
   <!-- ARAMA GEÇMİŞİ MODAL'I -->
-  <div id="search-history-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-all duration-300">
-    <div class="corporate-card bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden transform transition-all scale-95 opacity-0" id="history-modal-container">
+  <div id="search-history-modal" class="modal-overlay hidden" onclick="if(event.target === this) closeHistoryModal()">
+    <div class="corporate-card bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden transform transition-all scale-95 opacity-0 modal-dialog-content" id="history-modal-container" onclick="event.stopPropagation()">
       
       <!-- Modal Header -->
       <div class="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50">
         <div class="flex items-center space-x-3">
-          <div class="p-2.5 rounded-xl bg-teal-50 text-[#00A3A6] border border-teal-100">
+          <div class="p-2.5 rounded-xl bg-teal-50 text-[#00A3A6] border border-teal-100 flex items-center justify-center shrink-0">
             <i data-lucide="history" class="w-6 h-6"></i>
           </div>
           <div>
