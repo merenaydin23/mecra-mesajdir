@@ -8,8 +8,13 @@ Mecra Mesajdır - Test ve Çalıştırma Script'i
 """
 
 import os
+import sys
 import asyncio
 from dotenv import load_dotenv
+
+# UTF-8 Encoding ayarı
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
 
 # Env değişkenlerini yükle
 load_dotenv()
