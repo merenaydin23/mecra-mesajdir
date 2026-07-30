@@ -589,6 +589,200 @@ function showToast(message, type = 'info') {
   setTimeout(() => {
     toast.style.opacity = '0';
     toast.style.transform = 'translateY(100%)';
+  // Analiz sekmesine geç
+  const analyticsNavBtn = document.querySelector('[data-tab="analytics"]');
+  if (analyticsNavBtn) analyticsNavBtn.click();
+}
+
+// GitHub Stili Diff Viewer (Kelime Karşılaştırma)
+function renderDiffViewer() {
+  const container = document.getElementById('diff-viewer-content');
+  if (!container) return;
+
+  const coreWords = appState.coreMessage.split(/\s+/);
+  const targetText = appState.transformedMessages[appState.selectedPlatformForDiff] || "";
+  const targetWords = targetText.split(/\s+/);
+
+  const diffResult = computeWordDiff(coreWords, targetWords);
+
+  let html = `<div class="font-mono text-sm leading-relaxed space-y-1">`;
+  html += `<div class="p-3 bg-slate-900 text-slate-100 rounded-md mb-4 text-xs font-semibold flex items-center justify-between">`;
+  html += `<span>Orijinal Çekirdek Mesaj vs. ${getPlatformDisplayName(appState.selectedPlatformForDiff)}</span>`;
+  html += `<span class="text-emerald-400">GitHub Diff Engine</span></div>`;
+
+  html += `<div class="p-4 bg-white border border-slate-200 rounded-lg shadow-inner">`;
+  diffResult.forEach(item => {
+    if (item.type === 'removed') {
+      html += `<span class="diff-deleted">${escapeHtml(item.word)}</span> `;
+    } else if (item.type === 'added') {
+      html += `<span class="diff-inserted">${escapeHtml(item.word)}</span> `;
+    } else {
+      html += `<span class="text-slate-700">${escapeHtml(item.word)}</span> `;
+    }
+  });
+  html += `</div></div>`;
+
+  container.innerHTML = html;
+}
+
+// Kelime Fark Algoritması (LCS tabanlı diff)
+function computeWordDiff(arr1, arr2) {
+  const diff = [];
+  let i = 0, j = 0;
+  while (i < arr1.length || j < arr2.length) {
+    if (i < arr1.length && j < arr2.length && arr1[i] === arr2[j]) {
+      diff.push({ type: 'same', word: arr1[i] });
+      i++; j++;
+    } else if (j < arr2.length && (!arr1.includes(arr2[j], i) || arr2.indexOf(arr1[i], j) > j)) {
+      diff.push({ type: 'added', word: arr2[j] });
+      j++;
+    } else if (i < arr1.length) {
+      diff.push({ type: 'removed', word: arr1[i] });
+      i++;
+    }
+  }
+  return diff;
+}
+
+// Radar Chart Yönetimi
+let radarChartInstance = null;
+function renderAnalyticsCharts() {
+  renderRadarChart();
+  renderBarChart();
+}
+
+function renderRadarChart() {
+  const ctx = document.getElementById('radarChart');
+  if (!ctx) return;
+
+  if (radarChartInstance) {
+    radarChartInstance.destroy();
+  }
+
+  const platforms = PLATFORMS_CONFIG.map(p => p.name.split(' ')[0]);
+  const simScores = appState.analysisResults.map(a => a.sim);
+
+  radarChartInstance = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: platforms,
+      datasets: [{
+        label: 'Anlamsal Korunum (%)',
+        data: simScores,
+        backgroundColor: 'rgba(0, 163, 166, 0.2)',
+        borderColor: '#00A3A6',
+        pointBackgroundColor: '#00A3A6',
+        pointBorderColor: '#fff',
+        pointHoverBackgroundColor: '#fff',
+        pointHoverBorderColor: '#00A3A6'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        r: {
+          angleLines: { color: 'rgba(0,0,0,0.05)' },
+          suggestedMin: 50,
+          suggestedMax: 100
+        }
+      }
+    }
+  });
+}
+
+// Bar Chart Yönetimi
+let barChartInstance = null;
+function renderBarChart() {
+  const ctx = document.getElementById('barChart');
+  if (!ctx) return;
+
+  if (barChartInstance) {
+    barChartInstance.destroy();
+  }
+
+  const platforms = PLATFORMS_CONFIG.map(p => p.name);
+  const scores = appState.analysisResults.map(a => a.sim);
+
+  barChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: platforms,
+      datasets: [{
+        label: 'Bilgi Korunumu (%)',
+        data: scores,
+        backgroundColor: '#00A3A6',
+        borderRadius: 6,
+        hoverBackgroundColor: '#007D80'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { beginAtZero: true, max: 100, ticks: { callback: v => '%' + v } },
+        x: { ticks: { font: { size: 10 } } }
+      },
+      plugins: {
+        legend: { display: false }
+      }
+    }
+  });
+}
+
+// Özet Karşılaştırma Tablosunu Çizme
+function renderSummaryTable() {
+  const tbody = document.getElementById('summary-table-body');
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+
+  appState.analysisResults.forEach(item => {
+    const pName = getPlatformDisplayName(item.channel);
+    const tr = document.createElement('tr');
+    tr.className = "hover:bg-slate-50 transition-colors border-b border-slate-100 text-sm";
+    tr.innerHTML = `
+      <td class="py-3 px-4 font-semibold text-slate-800">${pName}</td>
+      <td class="py-3 px-4 text-emerald-600 font-bold">%${item.sim}</td>
+      <td class="py-3 px-4">${item.loss === 'Evet' ? '<span class="text-rose-600 font-semibold">Evet ⚠️</span>' : '<span class="text-emerald-600">Hayır</span>'}</td>
+      <td class="py-3 px-4">${item.cta === 'Evet' ? '<span class="text-emerald-600 font-semibold">Evet ✅</span>' : 'Hayır'}</td>
+      <td class="py-3 px-4 font-medium">${item.sentiment}</td>
+      <td class="py-3 px-4"><span class="px-2 py-0.5 rounded text-xs bg-slate-100 text-slate-700">${item.ambiguity}</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// Toast Bildirim Sistemi
+function showToast(message, type = 'info') {
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+
+  const iconMap = {
+    info: 'info',
+    success: 'check-circle',
+    warning: 'alert-triangle',
+    error: 'x-circle'
+  };
+
+  toast.innerHTML = `
+    <i data-lucide="${iconMap[type] || 'info'}" class="w-5 h-5 text-[#00A3A6]"></i>
+    <span class="text-sm font-medium">${escapeHtml(message)}</span>
+  `;
+
+  container.appendChild(toast);
+  initLucideIcons();
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(100%)';
     toast.style.transition = 'all 0.3s ease';
     setTimeout(() => toast.remove(), 300);
   }, 4000);
@@ -610,25 +804,28 @@ function escapeHtml(str) {
     .replace(/'/g, "&#039;");
 }
 
-// Mock Dönüştürme & Analiz Üreteci (Mecralara Özgü Farklı Metin Uzunlukları & Okunabilir Paragraflar)
+// Mock Dönüştürme & Analiz Üreteci (Dinamik Kullanıcı Metni Uyumlu)
 function generateMockTransformation(core) {
+  const cleanCore = core && core.trim().length > 0 ? core.trim() : "Yoğun kar yağışı nedeniyle Elazığ genelinde yarın tüm okullar 1 gün süreyle tatil edilmiştir.";
+  const shortCore = cleanCore.length > 60 ? cleanCore.substring(0, 60) + '...' : cleanCore;
+
   return {
     transformedMessages: {
-      press_release: `T.C. ELAZIĞ VALİLİĞİ BASIN AÇIKLAMASI\n\nİlimiz genelinde devam eden yoğun meteorolojik gelişmeler ve kar yağışı değerlendirilmiş olup, ulaşımda yaşanabilecek buzlanma ve kaza risklerine karşı tedbir amaçlı kararlar alınmıştır.\n\n31 Temmuz 2026 Cuma günü ilimiz genelindeki tüm anaokulu, ilkokul, ortaokul ve lise düzeyindeki eğitim kurumlarında eğitime 1 (bir) gün süreyle ara verilmiştir.\n\nKamu bünyesinde görev yapmakta olan hamile, engelli ve kronik rahatsızlığı bulunan personellerimiz idari izinli sayılacaktır. Vatandaşlarımızın resmi duyuruları takip etmeleri önemle rica olunur.`,
+      press_release: `T.C. CUMHURBAŞKANLIĞI İLETİŞİM BAŞKANLIĞI\nBASIN AÇIKLAMASI\n\n${cleanCore}\n\nKonuya ilişkin idari süreçler, saha koordinasyonu ve kamuoyunu bilgilendirme faaliyetleri 7/24 esasına göre yürütülmektedir.\n\nVatandaşlarımızın yalnızca resmi kanallardan yapılan duyurulara itibar etmeleri önemle rica olunur. Kamuoyuna saygıyla duyurulur.`,
       
-      agency_news: `[SON DAKİKA HABERİ] ELAZIĞ - Elazığ'da etkisini artıran olumsuz hava koşulları ve kar yağışı nedeniyle il genelindeki tüm okullarda eğitime yarın 1 gün süreyle ara verildi.\n\nValilik İl Hıfzıssıhha Kurulu tarafından yapılan açıklamada, buzlanma ve don olaylarına karşı sürücülerin zincir ve kış lastiği olmadan yola çıkmamaları konusunda uyarıda bulunuldu. Ekipler kar küreme çalışmalarına devam ediyor.`,
+      agency_news: `[SON DAKİKA HABERİ] ANKARA (AA) - Gelen son dakika bildirimine göre;\n\n"${cleanCore}"\n\nYetkililerden alınan bilgiye göre konuya ilişkin gerekli tüm tedbirler alınmış olup gelişmeler ajansımız tarafından yakından takip edilmektedir.`,
       
-      tabloid: `ELAZIĞ'DA KAR ALARMI! Öğrencilere Müjdeli Haber Son Dakika Geldi! 😱❄️\n\nTermometreler sıfırın altına düştü, kar fırtınası şehri esir aldı! Valilikten gelen karar ile okullar yarın tamamen tatil edildi. Sürücülere aman dikkat uyarısı yapıldı!`,
+      tabloid: `FLAŞ FLAŞ FLAŞ! ÖNEMLİ GELİŞME KANATLANDI! 😱🔥\n\n"${cleanCore.toUpperCase()}"\n\nGelişme gündeme adeta bomba gibi düştü! Tüm gözler yetkililerden gelecek yeni açıklamalara çevrildi!`,
       
-      x_twitter: `🚨 ELAZIĞ'DA OKULLAR TATİL! ❄️📚\n\nİlimiz genelinde devam eden yoğun kar yağışı ve buzlanma riski nedeniyle yarın (1 gün) tüm okullarda eğitime ara verilmiştir.\n\nSürücülerimizin dikkatli olmaları önemle rica olunur.\n\n#Elazığ #KarTatili #SonDakika`,
+      x_twitter: `🚨 SON DAKİKA DUYURUSU 📌\n\n${cleanCore}\n\nResmi açıklamaları ve gelişmeleri anlık olarak hesabımızdan takip edebilirsiniz. 📢\n\n#SonDakika #ResmiDuyuru #Kamuİletişimi #Gündem`,
       
-      linkedin: `Bölgesel hava koşullarındaki gelişmeler ve kamu sağlığı önceliklerimiz doğrultusunda Elazığ lokasyonumuzdaki eğitim kurumlarında eğitime 1 gün süreyle ara verilmiştir.\n\nKurumsal iş sürekliliği ve çalışan güvenliği esaslarımız çerçevesinde hamile ve engelli personellerimiz idari izinli sayılacaktır.\n\n#Kamuİletişimi #KrizYönetimi #İşSağlığıVeGüvenliği`,
+      linkedin: `Stratejik kamu iletişimi ve kurumsal yönetişim prensiplerimiz çerçevesinde önemli bilgilendirme:\n\n• ${cleanCore}\n\nKurumsal süreçlerimiz ve paydaş koordinasyonumuz kararlılıkla sürdürülmektedir.\n\n#Stratejikİletişim #KamuYönetimi #KurumsalYönetim #Liderlik`,
       
-      vertical_video: `🎬 [VİDEO SENARYOSU - Reels / Shorts / TikTok]\n\n[00:00 - 00:03] 🚨 Görsel: Karlı Elazığ manzarası\nMetin: "ELAZIĞ'DA OKULLAR TATİL!"\nVoiceover: "Öğrenciler dikkat! Elazığ Valiliği'nden son dakika kararı geldi!"\n\n[00:03 - 00:07] ❄️ Görsel: Kar küreme aracı\nMetin: "1 Gün Eğitime Ara Verildi"\nVoiceover: "Buzlanma riski nedeniyle yarın tüm okullar tatil."`,
+      vertical_video: `🎬 DİKEY VİDEO SENARYOSU (TikTok / Reels / Shorts)\n\n📌 [00:00 - 00:03] KANCA\nGörsel: Dikkat çekici resmi duyuru görseli\nEkran Metni: "ÖNEMLİ DUYURU!"\nDış Ses: "Arkadaşlar dikkat! ${shortCore}"\n\n📌 [00:03 - 00:08] GELİŞME\nEkran Metni: "${cleanCore}"\nDış Ses: "Resmi duyuruları takip etmeyi unutmayın!"`,
       
-      messaging_chain: `Arkadaşlar Elazığ Valiliği açıklama yaptı, kar yağışı nedeniyle yarın tüm okullar 1 gün tatil edilmiş ❄️ Hamile ve engelli çalışanlar da izinliymiş, bilgisi olmayan arkadaşlara iletelim lütfen 👍`,
+      messaging_chain: `Arkadaşlar bilginiz olsun resmi duyuru paylaşıldı: ${cleanCore} 📲 Haberi olmayan arkadaşlara ve WhatsApp gruplarına iletelim lütfen 👍`,
       
-      official_letter: `T.C. ELAZIĞ VALİLİĞİ\nİl Milli Eğitim Müdürlüğü\nSayı : E-75249013-010.06-2026/4108\nTarih: 30.07.2026\nKonu : Meteorolojik Koşullar Sebebiyle Eğitime Ara Verilmesi\n\nİLGİLİ MAKAMA VE TÜM EĞİTİM KURUMLARINA\n\nİlimiz Meteoroloji Bölge Müdürlüğünden alınan son veriler doğrultusunda, gece saatlerinden itibaren etkisini artırması beklenen olumsuz hava şartları ve yoğun buzlanma riski değerlendirilmiştir.\n\nBu kapsamda ilimiz genelindeki tüm resmi ve özel okul öncesi, ilköğretim ve ortaöğretim kurumlarında 31.07.2026 tarihinde eğitime 1 (bir) gün süreyle ara verilmesi uygun görülmüştür.\n\nBilgilerinizi ve gereğini rica ederim.\n\nAyşe YILDIZ\nVali a. / İl Milli Eğitim Müdürü V.`
+      official_letter: `T.C. CUMHURBAŞKANLIĞI İLETİŞİM BAŞKANLIĞI\n\nSayı  : E-75249013-010.06-2026/4108\nTarih : 30.07.2026\nKonu  : Kamuoyu Bilgilendirmesi ve İdari Kararlar Hk.\n\nİLGİLİ MAKAMA VE KURUM MÜDÜRLÜKLERİNE\n\n${cleanCore}\n\nGereğini ve bilgilerinizi önemle rica ederim.\n\nAyşe YILDIZ\nVali a. / Genel Sekreter V.`
     },
     analysisResults: [
       { channel: 'press_release', sim: 94.2, loss: 'Hayır', cta: 'Hayır', sentiment: 'POS', ambiguity: 'Düşük' },
