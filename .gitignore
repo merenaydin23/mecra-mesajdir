@@ -21,5 +21,3 @@ env/
 .DS_Store
 Thumbs.db
 
-# Frontend (Push edilmeyecek — hazır olunca aktif edilecek)
-frontend/

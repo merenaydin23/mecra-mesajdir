@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="tr" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mecra Mesajdır — Analitik Paneli</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            primary: { DEFAULT: '#00A3A6', dark: '#007D80', light: '#E6F8F8', muted: '#B3E6E7' },
+            navy: { DEFAULT: '#0F172A', 800: '#1E293B', 700: '#334155', 600: '#475569' },
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.4s ease-out',
+            'slide-in': 'slideIn 0.3s ease-out',
+          },
+          keyframes: {
+            fadeIn: { '0%': { opacity: '0', transform: 'translateY(8px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+            slideIn: { '0%': { transform: 'translateX(-100%)' }, '100%': { transform: 'translateX(0)' } },
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: #F8FAFC; color: #0F172A; }
+
+    /* Watermark */
+    .watermark {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 700px; height: 700px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #00A3A6 0%, #0F172A 60%, transparent 100%);
+      opacity: 0.03;
+      pointer-events: none; z-index: 0;
+    }
+    .watermark::after {
+      content: 'MM';
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 320px; font-weight: 900;
+      color: #00A3A6; opacity: 1;
+      font-family: 'Inter', sans-serif;
+      letter-spacing: -20px;
+    }
+
+    /* Sidebar */
+    #sidebar { transition: width 0.3s cubic-bezier(0.4,0,0.2,1); width: 280px; }
+    #sidebar.collapsed { width: 72px; }
+    #sidebar.collapsed .sidebar-text { display: none; }
+    #sidebar.collapsed .sidebar-item span { display: none; }
+    #sidebar.collapsed #sidebar-title { display: none; }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #F1F5F9; }
+    ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+    /* Diff tokens */
+    .diff-del { background: #FFEBE9; color: #CF222E; text-decoration: line-through; padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+    .diff-add { background: #DAFBE1; color: #1A7F37; padding: 1px 5px; border-radius: 3px; font-weight: 600; }
+    .diff-same { color: #374151; }
+
+    /* Shimmer skeleton */
+    @keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+    .skeleton {
+      background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+      background-size: 800px 100%; animation: shimmer 1.6s infinite;
+      border-radius: 6px;
+    }
+
+    /* Card hover */
+    .card { transition: box-shadow 0.2s ease, transform 0.2s ease; }
+    .card:hover { box-shadow: 0 8px 24px -4px rgba(0,163,166,0.10), 0 2px 8px -2px rgba(15,23,42,0.06); }
+
+    /* Radar chart tooltip */
+    .chart-container { position: relative; }
+
+    /* Sidebar active */
+    .history-item.active { background: #E6F8F8; border-left: 3px solid #00A3A6; }
+    .history-item { border-left: 3px solid transparent; transition: all 0.15s; }
+    .history-item:hover { background: #F8FAFC; border-left-color: #B3E6E7; }
+
+    /* Print */
+    @media print {
+      #sidebar, header, footer, .no-print { display: none !important; }
+      #main-content { margin-left: 0 !important; }
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col overflow-hidden">
+
+  <!-- ============================================================ -->
+  <!-- BACKGROUND WATERMARK -->
+  <!-- ============================================================ -->
+  <div class="watermark"></div>
+
+  <!-- ============================================================ -->
+  <!-- OUTER SHELL: FLEX ROW (Sidebar + Right) -->
+  <!-- ============================================================ -->
+  <div class="flex flex-1 h-screen overflow-hidden relative z-10">
+
+    <!-- ========================================================== -->
+    <!-- SIDEBAR — Geçmiş Analizler -->
+    <!-- ========================================================== -->
+    <aside id="sidebar" class="bg-white border-r border-slate-200 flex flex-col flex-shrink-0 h-full overflow-hidden shadow-sm">
+
+      <!-- Sidebar Header -->
+      <div class="flex items-center justify-between px-4 py-5 border-b border-slate-100">
+        <h2 id="sidebar-title" class="sidebar-text text-sm font-bold text-navy tracking-tight">Geçmiş Analizler</h2>
+        <button id="toggle-sidebar" class="p-2 rounded-lg hover:bg-slate-100 transition-colors flex-shrink-0 text-navy-700">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Sidebar Items -->
+      <nav class="flex-1 overflow-y-auto py-3 px-2 space-y-1">
+        <div class="history-item active rounded-lg px-3 py-3 cursor-pointer">
+          <div class="sidebar-item flex items-center gap-3">
+            <div class="w-2 h-2 rounded-full bg-primary flex-shrink-0"></div>
+            <div class="min-w-0">
+              <span class="text-xs font-semibold text-navy truncate block">Elazığ Kar Tatili</span>
+              <span class="text-[10px] text-slate-500">30.07.2026</span>
+            </div>
+          </div>
+        </div>
+        <div class="history-item rounded-lg px-3 py-3 cursor-pointer">
+          <div class="sidebar-item flex items-center gap-3">
+            <div class="w-2 h-2 rounded-full bg-slate-300 flex-shrink-0"></div>
+            <div class="min-w-0">
+              <span class="text-xs font-medium text-slate-600 truncate block">Bakanlık Atama Duyurusu</span>
+              <span class="text-[10px] text-slate-400">28.07.2026</span>
+            </div>
+          </div>
+        </div>
+        <div class="history-item rounded-lg px-3 py-3 cursor-pointer">
+          <div class="sidebar-item flex items-center gap-3">
+            <div class="w-2 h-2 rounded-full bg-slate-300 flex-shrink-0"></div>
+            <div class="min-w-0">
+              <span class="text-xs font-medium text-slate-600 truncate block">Ekonomi Raporu Q2</span>
+              <span class="text-[10px] text-slate-400">25.07.2026</span>
+            </div>
+          </div>
+        </div>
+        <div class="history-item rounded-lg px-3 py-3 cursor-pointer">
+          <div class="sidebar-item flex items-center gap-3">
+            <div class="w-2 h-2 rounded-full bg-slate-300 flex-shrink-0"></div>
+            <div class="min-w-0">
+              <span class="text-xs font-medium text-slate-600 truncate block">TBMM Açıklaması</span>
+              <span class="text-[10px] text-slate-400">22.07.2026</span>
+            </div>
+          </div>
+        </div>
+        <div class="history-item rounded-lg px-3 py-3 cursor-pointer">
+          <div class="sidebar-item flex items-center gap-3">
+            <div class="w-2 h-2 rounded-full bg-slate-300 flex-shrink-0"></div>
+            <div class="min-w-0">
+              <span class="text-xs font-medium text-slate-600 truncate block">Afet Koordinasyon Mesajı</span>
+              <span class="text-[10px] text-slate-400">19.07.2026</span>
+            </div>
+          </div>
+        </div>
+        <div class="history-item rounded-lg px-3 py-3 cursor-pointer">
+          <div class="sidebar-item flex items-center gap-3">
+            <div class="w-2 h-2 rounded-full bg-slate-300 flex-shrink-0"></div>
+            <div class="min-w-0">
+              <span class="text-xs font-medium text-slate-600 truncate block">Ulaşım Kampüs Duyurusu</span>
+              <span class="text-[10px] text-slate-400">15.07.2026</span>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Sidebar Footer -->
+      <div class="p-3 border-t border-slate-100">
+        <button class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-primary-light text-primary font-semibold text-xs hover:bg-primary hover:text-white transition-all">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span class="sidebar-text">Yeni Analiz Başlat</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ========================================================== -->
+    <!-- RIGHT SECTION: Header + Content + Footer -->
+    <!-- ========================================================== -->
+    <div class="flex flex-col flex-1 min-w-0 h-full overflow-hidden">
+
+      <!-- ======================================================== -->
+      <!-- HEADER -->
+      <!-- ======================================================== -->
+      <header class="bg-white border-b border-slate-200 flex items-center justify-between px-8 py-4 flex-shrink-0 shadow-sm z-20">
+        
+        <!-- Logo + Title -->
+        <div class="flex items-center gap-4">
+          <div class="w-11 h-11 rounded-full bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center shadow-md flex-shrink-0">
+            <span class="text-white font-black text-sm tracking-tight">MM</span>
+          </div>
+          <div>
+            <h1 class="text-base font-bold text-navy leading-none">Mecra Mesajdır — Analitik Paneli</h1>
+            <p class="text-[11px] text-slate-500 mt-0.5 font-medium">T.C. Cumhurbaşkanlığı İletişim Başkanlığı · LLM Destekli</p>
+          </div>
+        </div>
+
+        <!-- Right Controls -->
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full">
+            <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span class="text-[11px] font-semibold text-emerald-700">Canlı · Qwen-397B</span>
+          </div>
+          <button id="btn-pdf" onclick="window.print()" class="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-md hover:bg-primary-dark transition-all hover:shadow-lg hover:-translate-y-0.5">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            PDF Raporu İndir
+          </button>
+        </div>
+      </header>
+
+      <!-- ======================================================== -->
+      <!-- MAIN CONTENT — Scrollable -->
+      <!-- ======================================================== -->
+      <main class="flex-1 overflow-y-auto px-8 py-8 space-y-7 pb-24">
+
+        <!-- ─── ROW 1: AI Insight Summary Card ─── -->
+        <div class="card bg-gradient-to-r from-primary to-[#007D80] rounded-2xl p-7 text-white shadow-lg relative overflow-hidden animate-fade-in">
+          <!-- Decorative circle -->
+          <div class="absolute right-0 top-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4"></div>
+          <div class="absolute right-24 bottom-0 w-40 h-40 bg-white/5 rounded-full translate-y-1/2"></div>
+
+          <div class="relative z-10">
+            <div class="flex items-center gap-2.5 mb-3">
+              <span class="text-xl">💡</span>
+              <h2 class="text-sm font-bold uppercase tracking-widest opacity-90">Yapay Zekâ İçgörü Özeti</h2>
+            </div>
+            <p class="text-lg font-semibold leading-relaxed max-w-4xl opacity-95">
+              Bu mesajda en çok bilgi kaybı <strong>%27 ile Magazin/Tabloid</strong> mecrasında yaşanırken, eylem çağrısı (CTA) en net biçimde <strong>X (Twitter)</strong> platformunda korunmuştur. Bozulma zinciri incelendiğinde kırılma noktası (BP) <strong>X → Dikey Video</strong> geçişinde tespit edilmiştir — ardışık sapma Δ = 0.27.
+            </p>
+            <div class="flex flex-wrap gap-3 mt-5">
+              <span class="px-3 py-1.5 bg-white/15 rounded-lg text-xs font-semibold">8 Mecra Analiz Edildi</span>
+              <span class="px-3 py-1.5 bg-white/15 rounded-lg text-xs font-semibold">6 Analiz Modülü Aktif</span>
+              <span class="px-3 py-1.5 bg-white/15 rounded-lg text-xs font-semibold">Bozulma Zinciri Tespit Edildi 🔴</span>
+              <span class="px-3 py-1.5 bg-white/15 rounded-lg text-xs font-semibold">Ortalama Benzerlik: %86.4</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ─── ROW 2: 2-Column (Diff Viewer | Charts) ─── -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-7 animate-fade-in">
+
+          <!-- LEFT: Diff Viewer Card -->
+          <div class="card bg-white rounded-2xl shadow-sm border border-slate-200/80 flex flex-col overflow-hidden">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                </div>
+                <h3 class="font-bold text-navy text-sm">Metin Karşılaştırma (Diff Viewer)</h3>
+              </div>
+              <select id="diff-select" class="text-xs bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-primary/30 font-medium">
+                <option value="x">X (Twitter)</option>
+                <option value="press">Basın Açıklaması</option>
+                <option value="agency">Ajans Haberi</option>
+                <option value="tabloid">Tabloid / Magazin</option>
+                <option value="linkedin">LinkedIn</option>
+                <option value="whatsapp">WhatsApp</option>
+                <option value="official">Resmi Yazı</option>
+              </select>
+            </div>
+
+            <!-- Diff Legend -->
+            <div class="flex items-center gap-4 px-6 py-3 bg-slate-50 border-b border-slate-100 text-xs font-medium">
+              <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-red-100 border border-red-300 inline-block"></span><span class="text-slate-600">Silinen / Değiştirilen</span></div>
+              <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-emerald-100 border border-emerald-300 inline-block"></span><span class="text-slate-600">Eklenen / Uyarlanan</span></div>
+            </div>
+
+            <!-- Diff Content -->
+            <div class="p-6 flex-1 space-y-5 overflow-auto">
+              <!-- Original -->
+              <div>
+                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Çekirdek Mesaj (Orijinal)</p>
+                <p class="text-sm leading-relaxed text-slate-700 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  Yoğun kar yağışı nedeniyle Elazığ genelinde yarın tüm okullar 1 gün süreyle tatil edilmiştir.
+                </p>
+              </div>
+
+              <!-- Divider -->
+              <div class="flex items-center gap-3">
+                <div class="flex-1 h-px bg-slate-200"></div>
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Dönüştürülmüş</span>
+                <div class="flex-1 h-px bg-slate-200"></div>
+              </div>
+
+              <!-- Transformed Diff -->
+              <div>
+                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">X (Twitter) Çıktısı — Diff</p>
+                <p id="diff-output" class="text-sm leading-loose bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <!-- Filled by JS -->
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT: Charts Card -->
+          <div class="card bg-white rounded-2xl shadow-sm border border-slate-200/80 flex flex-col overflow-hidden">
+            <div class="flex items-center gap-2.5 px-6 py-4 border-b border-slate-100">
+              <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              </div>
+              <h3 class="font-bold text-navy text-sm">Metrik Grafikleri</h3>
+            </div>
+
+            <div class="flex-1 grid grid-rows-2 gap-0 divide-y divide-slate-100">
+              <!-- Radar -->
+              <div class="p-5">
+                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Duygu · Belirsizlik · CTA Radar Analizi</p>
+                <div class="h-[190px]">
+                  <canvas id="radarChart"></canvas>
+                </div>
+              </div>
+
+              <!-- Bar -->
+              <div class="p-5">
+                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Mecra Bazlı Bilgi Korunumu Oranı (%)</p>
+                <div class="h-[190px]">
+                  <canvas id="barChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ─── ROW 3: Data Table ─── -->
+        <div class="card bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden animate-fade-in">
+          <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0F172A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+              </div>
+              <h3 class="font-bold text-navy text-sm">Mecra Bazlı Karşılaştırmalı Analiz Tablosu</h3>
+            </div>
+            <span class="text-xs text-slate-500 font-medium">8 Platform · 6 Metrik</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200">
+                  <th class="px-6 py-3.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">Mecra</th>
+                  <th class="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">Anlamsal Benzerlik</th>
+                  <th class="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">Bilgi Kaybı</th>
+                  <th class="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">CTA Gücü</th>
+                  <th class="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">Duygu Yönü</th>
+                  <th class="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">Belirsizlik</th>
+                  <th class="px-5 py-3.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">Kırılma (BP)</th>
+                </tr>
+              </thead>
+              <tbody id="table-body" class="divide-y divide-slate-100">
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+
+      <!-- ======================================================== -->
+      <!-- FIXED FOOTER -->
+      <!-- ======================================================== -->
+      <footer class="bg-navy text-white text-center py-3.5 flex-shrink-0 z-20">
+        <p class="text-[11px] font-medium tracking-wide opacity-90">
+          🇹🇷 <strong>T.C. Cumhurbaşkanlığı İletişim Başkanlığı</strong> — 2026 Yaz Stajı Projesi &nbsp;|&nbsp; Muhammed Eren Aydın ve Anıl Mert Külük tarafından <em>'Mecra Mesajdır'</em> kuramı temel alınarak geliştirilmiştir.
+        </p>
+      </footer>
+
+    </div><!-- /right section -->
+  </div><!-- /outer shell -->
+
+  <!-- ============================================================ -->
+  <!-- JAVASCRIPT -->
+  <!-- ============================================================ -->
+  <script>
+    /* ─── SIDEBAR TOGGLE ─── */
+    document.getElementById('toggle-sidebar').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('collapsed');
+    });
+
+    /* ─── DATA ─── */
+    const platforms = [
+      { name: 'Basın Açıklaması',    sim: 94.2, loss: false, cta: 'Zayıf',   sent: 'Nötr',    amb: 'Düşük',   bp: false },
+      { name: 'Ajans Haberi (AA/İHA)',sim: 91.5, loss: false, cta: 'Yok',     sent: 'Nötr',    amb: 'Düşük',   bp: false },
+      { name: 'Tabloid / Magazin',    sim: 72.8, loss: true,  cta: 'Orta',    sent: 'Güçlü+',  amb: 'Yüksek',  bp: false },
+      { name: 'X (Twitter)',          sim: 86.4, loss: false, cta: 'Güçlü',   sent: 'Pozitif', amb: 'Düşük',   bp: false },
+      { name: 'LinkedIn',             sim: 82.1, loss: false, cta: 'Orta',    sent: 'Pozitif', amb: 'Orta',    bp: false },
+      { name: 'Dikey Video (TikTok)', sim: 68.3, loss: true,  cta: 'Güçlü',   sent: 'Güçlü+',  amb: 'Orta',    bp: true  },
+      { name: 'WhatsApp Zinciri',     sim: 88.0, loss: false, cta: 'Zayıf',   sent: 'Nötr',    amb: 'Düşük',   bp: false },
+      { name: 'Resmi Yazı / Dilekçe', sim: 95.6, loss: false, cta: 'Yok',     sent: 'Nötr',    amb: 'Düşük',   bp: false },
+    ];
+
+    /* ─── TABLE RENDER ─── */
+    const tbody = document.getElementById('table-body');
+    platforms.forEach((p, i) => {
+      const simColor = p.sim >= 90 ? 'text-emerald-600' : p.sim >= 80 ? 'text-primary' : 'text-amber-600';
+      const lossHtml = p.loss
+        ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-50 text-red-600 text-[11px] font-semibold border border-red-200">Evet ⚠</span>`
+        : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[11px] font-semibold border border-emerald-200">Hayır ✓</span>`;
+      const bpHtml = p.bp
+        ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-100 text-red-700 text-[11px] font-bold border border-red-300">BP 🔴</span>`
+        : `<span class="text-slate-400 text-xs">—</span>`;
+
+      const ctaColor = p.cta === 'Güçlü' ? 'bg-primary-light text-primary border-primary-muted'
+        : p.cta === 'Orta' ? 'bg-amber-50 text-amber-700 border-amber-200'
+        : p.cta === 'Zayıf' ? 'bg-slate-100 text-slate-600 border-slate-200'
+        : 'bg-slate-50 text-slate-400 border-slate-100';
+
+      tbody.innerHTML += `
+        <tr class="hover:bg-slate-50/60 transition-colors ${i % 2 === 0 ? '' : 'bg-slate-50/30'}">
+          <td class="px-6 py-4 text-sm font-semibold text-navy">${p.name}</td>
+          <td class="px-5 py-4">
+            <div class="flex items-center gap-2.5">
+              <div class="w-20 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                <div class="h-full rounded-full ${p.sim >= 90 ? 'bg-emerald-500' : p.sim >= 80 ? 'bg-primary' : 'bg-amber-500'}" style="width:${p.sim}%"></div>
+              </div>
+              <span class="text-sm font-bold ${simColor}">%${p.sim}</span>
+            </div>
+          </td>
+          <td class="px-5 py-4">${lossHtml}</td>
+          <td class="px-5 py-4"><span class="inline-block px-2 py-0.5 rounded-md text-[11px] font-semibold border ${ctaColor}">${p.cta}</span></td>
+          <td class="px-5 py-4 text-sm text-slate-700 font-medium">${p.sent}</td>
+          <td class="px-5 py-4"><span class="text-xs font-medium ${p.amb === 'Yüksek' ? 'text-rose-600' : p.amb === 'Orta' ? 'text-amber-600' : 'text-slate-500'}">${p.amb}</span></td>
+          <td class="px-5 py-4">${bpHtml}</td>
+        </tr>`;
+    });
+
+    /* ─── DIFF ENGINE ─── */
+    const transformed = {
+      x:       '🚨 ELAZIĞ\'DA OKULLAR TATİL! ❄️ Yoğun kar yağışı nedeniyle yarın tüm okullar 1 gün kapalı. Aman yollara dikkat! 📚 #Elazığ #KarTatili',
+      press:   'T.C. Elazığ Valiliği\'nden yapılan açıklamada, olumsuz hava koşulları nedeniyle il genelindeki tüm eğitim kurumlarında yarın 1 gün süreyle eğitime ara verileceği bildirilmiştir.',
+      agency:  '[FLAŞ] Elazığ — Şiddetli kar yağışı nedeniyle il genelinde yarın okulların tatil edildiği Valilik tarafından duyuruldu. Yetkililer vatandaşları olası ulaşım sorunlarına karşı uyardı.',
+      tabloid: 'KAR ALARMI! Elazığ\'da termometreler düştü, okullar kilitlendi! Öğrenciler sevinirken veliler endişeli — yarın 1 günlük tatil resmen ilan edildi!',
+      linkedin:'Bölgesel iklim koşullarındaki ani değişimler ve çalışan/öğrenci güvenliği prensipleri doğrultusunda Elazığ ilindeki eğitim kurumlarımız yarın bir gün süreyle faaliyetlerine ara verecektir.',
+      whatsapp:'Arkadaşlar Elazığ\'da yarın okullar tatil, kar yağışı nedeniyle karar verildi. Gruba iletin ❄️',
+      official:'Sayı: E.2026/4108\nKonu: Eğitime Ara Verilmesi\nElazığ İl Milli Eğitim Müdürlüğüne — Yoğun kar yağışı nedeniyle yarın 1 gün süreyle eğitime ara verilmesi uygun görülmüştür.',
+    };
+
+    const coreWords = 'Yoğun kar yağışı nedeniyle Elazığ genelinde yarın tüm okullar 1 gün süreyle tatil edilmiştir'.split(/\s+/);
+
+    function renderDiff(key) {
+      const target = transformed[key] || '';
+      const tWords = target.split(/\s+/);
+      const coreSet = new Set(coreWords.map(w => w.toLowerCase().replace(/[.,!?]/g,'')));
+      const tSet    = new Set(tWords.map(w => w.toLowerCase().replace(/[.,!?]/g,'')));
+
+      let html = '';
+      coreWords.forEach(w => {
+        const clean = w.toLowerCase().replace(/[.,!?]/g,'');
+        if (!tSet.has(clean)) html += `<span class="diff-del">${w}</span> `;
+        else html += `<span class="diff-same">${w}</span> `;
+      });
+      html += '<br><br>';
+      tWords.forEach(w => {
+        const clean = w.toLowerCase().replace(/[.,!?]/g,'');
+        if (!coreSet.has(clean)) html += `<span class="diff-add">${w}</span> `;
+        else html += `<span class="diff-same">${w}</span> `;
+      });
+      document.getElementById('diff-output').innerHTML = html;
+    }
+
+    renderDiff('x');
+    document.getElementById('diff-select').addEventListener('change', e => renderDiff(e.target.value));
+
+    /* ─── CHARTS ─── */
+    const chartDefaults = {
+      font: { family: 'Inter', size: 11 },
+      color: '#64748B'
+    };
+    Chart.defaults.font = chartDefaults.font;
+    Chart.defaults.color = chartDefaults.color;
+
+    // Radar Chart
+    new Chart(document.getElementById('radarChart'), {
+      type: 'radar',
+      data: {
+        labels: ['Duygu Yoğunluğu', 'Belirsizlik', 'CTA Gücü', 'Anlamsal Ben.', 'Bilgi Kor.'],
+        datasets: [
+          {
+            label: 'Basın Açıklaması',
+            data: [0.45, 0.10, 0.30, 0.94, 0.95],
+            backgroundColor: 'rgba(0,163,166,0.15)',
+            borderColor: '#00A3A6', borderWidth: 2,
+            pointBackgroundColor: '#00A3A6', pointRadius: 3,
+          },
+          {
+            label: 'X (Twitter)',
+            data: [0.85, 0.30, 0.90, 0.86, 0.86],
+            backgroundColor: 'rgba(227,10,23,0.10)',
+            borderColor: '#E30A17', borderWidth: 2,
+            pointBackgroundColor: '#E30A17', pointRadius: 3,
+          },
+          {
+            label: 'Tabloid',
+            data: [0.95, 0.75, 0.50, 0.73, 0.73],
+            backgroundColor: 'rgba(245,158,11,0.10)',
+            borderColor: '#F59E0B', borderWidth: 2,
+            pointBackgroundColor: '#F59E0B', pointRadius: 3,
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          r: {
+            angleLines: { color: '#E2E8F0' },
+            grid: { color: '#F1F5F9' },
+            pointLabels: { font: { size: 10, weight: '600', family: 'Inter' }, color: '#334155' },
+            ticks: { display: false, stepSize: 0.25 },
+            min: 0, max: 1,
+          }
+        },
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14, font: { size: 11 } } }
+        }
+      }
+    });
+
+    // Bar Chart
+    new Chart(document.getElementById('barChart'), {
+      type: 'bar',
+      data: {
+        labels: platforms.map(p => p.name.split(' ')[0]),
+        datasets: [{
+          label: 'Bilgi Korunumu (%)',
+          data: platforms.map(p => p.sim),
+          backgroundColor: platforms.map(p => p.sim >= 90 ? '#00A3A6' : p.sim >= 80 ? '#38BDF8' : '#F59E0B'),
+          borderRadius: 5,
+          borderSkipped: false,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true, max: 100,
+            grid: { color: '#F1F5F9' },
+            ticks: { callback: v => '%' + v, font: { size: 10 } },
+            border: { dash: [4, 4] }
+          },
+          x: {
+            grid: { display: false },
+            ticks: { font: { size: 10 } }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ' %' + ctx.parsed.y } }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
