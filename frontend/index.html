@@ -24,49 +24,68 @@
 </head>
 <body class="bg-[#F8FAFC] text-[#0F172A] flex flex-col min-h-screen relative antialiased selection:bg-[#00A3A6] selection:text-white">
 
-  <!-- Watermark Arka Plan Filigranı (Opacity %3) -->
-  <div class="watermark-bg" id="watermark"></div>
 
-  <!-- TOP NAVBAR -->
-  <header class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm">
+  <!-- ÜST KURUMSAL GRADYAN VE NAVBAR -->
+  <div class="h-[3.5px] w-full bg-gradient-to-r from-[#E30A17] via-[#00A3A6] to-[#0F172A]"></div>
+  
+  <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)]">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
       
-      <!-- Sol: İletişim Başkanlığı Logosu & Tipografi -->
-      <div class="flex items-center space-x-4">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/%C4%B0leti%C5%9Fim_Ba%C5%9Fkanl%C4%B1%C4%9F%C4%B1_logo.svg/1280px-%C4%B0leti%C5%9Fim_Ba%C5%9Fkanl%C4%B1%C4%9F%C4%B1_logo.svg.png" 
-             alt="T.C. İletişim Başkanlığı Logo" 
-             class="h-12 w-auto object-contain">
+      <!-- Sol: Cumhurbaşkanlığı İletişim Başkanlığı Kurumsal Logosu & Tipografi -->
+      <div class="flex items-center space-x-3.5">
+        <div class="relative p-1 bg-white rounded-full shadow-xs border border-slate-200/90 flex items-center justify-center">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/%C4%B0leti%C5%9Fim_Ba%C5%9Fkanl%C4%B1%C4%9F%C4%B1_logo.svg/1280px-%C4%B0leti%C5%9Fim_Ba%C5%9Fkanl%C4%B1%C4%9F%C4%B1_logo.svg.png" 
+               alt="T.C. İletişim Başkanlığı Logo" 
+               class="h-11 w-auto object-contain">
+        </div>
         
-        <div class="border-l border-slate-300 pl-4 py-1">
-          <h1 class="text-lg font-bold text-[#0F172A] tracking-tight flex items-center gap-2">
-            Mecra Mesajdır
-            <span class="text-xs px-2 py-0.5 rounded font-medium bg-teal-50 text-[#00A3A6] border border-teal-200">AI Platform</span>
-          </h1>
-          <p class="text-xs text-slate-600 font-medium">T.C. Cumhurbaşkanlığı İletişim Başkanlığı Analitik Paneli</p>
+        <div class="border-l border-slate-200/90 pl-3.5 py-0.5 space-y-0.5">
+          <div class="flex items-center gap-2">
+            <h1 class="text-base sm:text-lg font-extrabold text-[#0F172A] tracking-tight font-sans">
+              Mecra Mesajdır
+            </h1>
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-teal-50 text-[#008385] border border-teal-200/80 shadow-2xs">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#00A3A6] animate-pulse"></span>
+              AI PLATFORM
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-500 font-semibold tracking-wide flex items-center gap-1.5">
+            <span>T.C. CUMHURBAŞKANLIĞI İLETİŞİM BAŞKANLIĞI</span>
+            <span class="text-slate-300">•</span>
+            <span class="text-[#00A3A6]">BİLGİ İŞLEM DAİRESİ</span>
+          </p>
         </div>
       </div>
 
-      <!-- Orta: Navigasyon Sekmeleri -->
-      <nav class="hidden md:flex space-x-1 border-b-2 border-transparent">
-        <button data-tab="dashboard" class="nav-tab-btn px-4 py-2 text-sm font-semibold border-b-2 border-[#00A3A6] text-[#00A3A6] transition-colors flex items-center space-x-2">
+      <!-- Orta: Kurumsal Navigasyon Segmente Butonları -->
+      <nav class="hidden lg:flex items-center p-1 bg-slate-100/90 rounded-xl border border-slate-200/80 shadow-inner space-x-1">
+        <button data-tab="dashboard" class="nav-tab-btn px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 flex items-center space-x-2 bg-white text-[#00A3A6] shadow-xs border border-slate-200/60">
           <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
-          <span>Ana Üretim (Core Dashboard)</span>
+          <span>Çekirdek Mesaj Dönüştürücü</span>
         </button>
-        <button data-tab="analytics" class="nav-tab-btn px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-[#00A3A6] transition-colors flex items-center space-x-2">
+        <button data-tab="analytics" class="nav-tab-btn px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-200 text-slate-600 hover:text-[#0F172A] hover:bg-white/60 flex items-center space-x-2 border border-transparent">
           <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
-          <span>Çıktı Analizi & Grafikler</span>
+          <span>İletişim & Metrik Analitiği</span>
         </button>
-        <button data-tab="theory" class="nav-tab-btn px-4 py-2 text-sm font-medium text-slate-600 border-b-2 border-transparent hover:text-[#00A3A6] transition-colors flex items-center space-x-2">
+        <button data-tab="theory" class="nav-tab-btn px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-200 text-slate-600 hover:text-[#0F172A] hover:bg-white/60 flex items-center space-x-2 border border-transparent">
           <i data-lucide="book-open" class="w-4 h-4"></i>
-          <span>Kuram & Tarihçe</span>
+          <span>Kuramsal Çerçeve</span>
         </button>
       </nav>
 
-      <!-- Sağ: PDF Raporu İndir Butonu -->
+      <!-- Sağ: Sistem Durumu & Kurumsal Rapor Butonu -->
       <div class="flex items-center space-x-3">
-        <button id="btn-pdf-download" class="btn-primary px-4 py-2.5 rounded-lg text-sm font-medium flex items-center space-x-2 shadow-sm">
+        <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200/80 text-xs font-medium text-slate-600">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span class="font-semibold text-slate-700">Sistem Aktif</span>
+        </div>
+
+        <button id="btn-pdf-download" class="px-4 py-2 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-[#008385] to-[#00A3A6] hover:from-[#006E70] hover:to-[#008385] transition-all duration-200 shadow-sm shadow-teal-500/20 border border-teal-400/30 flex items-center space-x-2">
           <i data-lucide="file-down" class="w-4 h-4"></i>
-          <span>PDF Raporu İndir</span>
+          <span>Kurumsal Rapor (PDF)</span>
         </button>
       </div>
 
