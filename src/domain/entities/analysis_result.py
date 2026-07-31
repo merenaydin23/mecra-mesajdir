@@ -36,6 +36,7 @@ class CTAResult(BaseModel):
     verb_count: int = Field(0, description="Toplam fiil sayısı")
     all_verbs: List[str] = Field(default_factory=list, description="Yakalanan tüm fiiller")
     cta_words: List[str] = Field(default_factory=list, description="Ayrıştırılan CTA fiilleri")
+    cta_sentences: List[str] = Field(default_factory=list, description="CTA içeren cümleler")
     strength_score: float = Field(0.0, description="Normalized CTA şiddet skoru (0.0 - 1.0)")
     strength_text: str = Field("0/0", description="Şiddet puan metni (Örn: 10/15)")
     person_type: str = Field("Yok", description="Hitap türü (Sen / Siz / Tavsiye / Yok)")

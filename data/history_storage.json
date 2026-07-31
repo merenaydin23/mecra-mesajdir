@@ -1,5 +1,466 @@
 {
-  "analyses": [],
+  "analyses": [
+    {
+      "id": "c6e474b0",
+      "type": "analysis",
+      "created_at": "2026-08-01T02:08:19",
+      "core_message": "Sirketimiz 2026 yili ucuncu ceyreginde yuzde 15 kuculmeye gitme karari almistir.",
+      "platforms": [
+        {
+          "id": "tabloid",
+          "name": "Magazin / Tabloid Haberi",
+          "transformed_content": "FLAS! Sirket batıyor, herkes issiz kalacak!",
+          "semantic_similarity": 41.02,
+          "info_loss": true,
+          "info_loss_rate": 100.0,
+          "checked_facts_count": 2,
+          "fact_details": [
+            {
+              "label": "YIL",
+              "value": "2026",
+              "found": false,
+              "status": "YOK",
+              "in_core": true,
+              "in_target": false,
+              "explain": "Asıl mesajda «2026» var → bu platformda YOK ✗"
+            },
+            {
+              "label": "SAYI_FINANS",
+              "value": "15",
+              "found": false,
+              "status": "YOK",
+              "in_core": true,
+              "in_target": false,
+              "explain": "Asıl mesajda «15» var → bu platformda YOK ✗"
+            }
+          ],
+          "has_cta": false,
+          "cta_strength": "0/10",
+          "cta_words": [],
+          "cta_sentences": [],
+          "cta_person": "Yok",
+          "cta_score": 0.0,
+          "sentiment": "NEG",
+          "sentiment_pos": 0.0741,
+          "sentiment_neg": 0.9259,
+          "sentiment_intensity": 1.0,
+          "emoji_count": 0,
+          "punct_count": 2,
+          "ambiguity": "Yüksek",
+          "ambiguity_score": 0.6841,
+          "clarity_score": 0.3159,
+          "most_ambiguous_sentence": "Sirket batıyor, herkes issiz kalacak!",
+          "ambiguity_sentences": [
+            {
+              "cumle": "FLAS!",
+              "belirsizlik_skoru": 0.3624,
+              "belirsiz_benzerlik": 0.1985,
+              "kesin_benzerlik": 0.2691
+            },
+            {
+              "cumle": "Sirket batıyor, herkes issiz kalacak!",
+              "belirsizlik_skoru": 0.6841,
+              "belirsiz_benzerlik": 0.4013,
+              "kesin_benzerlik": 0.3048
+            }
+          ],
+          "is_breaking_point": false
+        },
+        {
+          "id": "x_twitter",
+          "name": "X (Twitter) Gönderisi",
+          "transformed_content": "2026 Q3 te %15 kuculme karari. Detaylari takip edin.",
+          "semantic_similarity": 75.62,
+          "info_loss": false,
+          "info_loss_rate": 0.0,
+          "checked_facts_count": 2,
+          "fact_details": [
+            {
+              "label": "YIL",
+              "value": "2026",
+              "found": true,
+              "status": "DURUYOR",
+              "in_core": true,
+              "in_target": true,
+              "explain": "Asıl mesajda «2026» var → bu platformda duruyor ✓"
+            },
+            {
+              "label": "SAYI_FINANS",
+              "value": "15",
+              "found": true,
+              "status": "DURUYOR",
+              "in_core": true,
+              "in_target": true,
+              "explain": "Asıl mesajda «15» var → bu platformda duruyor ✓"
+            }
+          ],
+          "has_cta": true,
+          "cta_strength": "5/5",
+          "cta_words": [
+            "edin"
+          ],
+          "cta_sentences": [
+            "Detaylari takip edin."
+          ],
+          "cta_person": "2. Çoğul (Siz)",
+          "cta_score": 1.0,
+          "sentiment": "NEG",
+          "sentiment_pos": 0.4987,
+          "sentiment_neg": 0.5013,
+          "sentiment_intensity": 0.5013,
+          "emoji_count": 0,
+          "punct_count": 0,
+          "ambiguity": "Yüksek",
+          "ambiguity_score": 0.7916,
+          "clarity_score": 0.2084,
+          "most_ambiguous_sentence": "Detaylari takip edin.",
+          "ambiguity_sentences": [
+            {
+              "cumle": "2026 Q3 te %15 kuculme karari.",
+              "belirsizlik_skoru": 0.5605,
+              "belirsiz_benzerlik": 0.3714,
+              "kesin_benzerlik": 0.341
+            },
+            {
+              "cumle": "Detaylari takip edin.",
+              "belirsizlik_skoru": 0.7916,
+              "belirsiz_benzerlik": 0.5646,
+              "kesin_benzerlik": 0.3978
+            }
+          ],
+          "is_breaking_point": false
+        }
+      ],
+      "degradation_chain": {
+        "has_breaking_point": true,
+        "breaking_point_channel": "X (Twitter) Gönderisi",
+        "max_consecutive_deviation": 0.7502,
+        "steps": [
+          {
+            "step_index": 1,
+            "channel_name": "Magazin / Tabloid Haberi",
+            "consecutive_similarity": 0.2618,
+            "consecutive_deviation": 0.7382,
+            "cumulative_similarity": 0.2618,
+            "is_breaking_point": false
+          },
+          {
+            "step_index": 2,
+            "channel_name": "X (Twitter) Gönderisi",
+            "consecutive_similarity": 0.2498,
+            "consecutive_deviation": 0.7502,
+            "cumulative_similarity": 0.6456,
+            "is_breaking_point": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "4021aa81",
+      "type": "analysis",
+      "created_at": "2026-08-01T02:06:21",
+      "core_message": "Şirketimiz 2026 yılı üçüncü çeyreğinde yüzde 15 küçülmeye gitme kararı almıştır.",
+      "platforms": [
+        {
+          "id": "tabloid",
+          "name": "Magazin / Tabloid Haberi",
+          "transformed_content": "FLAŞ! Şirket batıyor, herkes işsiz kalacak!",
+          "semantic_similarity": 31.36,
+          "info_loss": true,
+          "cta_strength": "0/10",
+          "sentiment": "NEG",
+          "ambiguity": "Orta",
+          "ambiguity_score": 0.6171,
+          "is_breaking_point": false
+        },
+        {
+          "id": "x_twitter",
+          "name": "X (Twitter) Gönderisi",
+          "transformed_content": "2026 Q3'te %15 küçülme kararı. Detayları takip edin.",
+          "semantic_similarity": 79.5,
+          "info_loss": false,
+          "cta_strength": "5/10",
+          "sentiment": "POS",
+          "ambiguity": "Yüksek",
+          "ambiguity_score": 0.8092,
+          "is_breaking_point": false
+        }
+      ],
+      "degradation_chain": {
+        "has_breaking_point": true,
+        "breaking_point_channel": "X (Twitter) Gönderisi",
+        "max_consecutive_deviation": 0.7402,
+        "steps": [
+          {
+            "step_index": 1,
+            "channel_name": "Magazin / Tabloid Haberi",
+            "consecutive_similarity": 0.3864,
+            "consecutive_deviation": 0.6136,
+            "cumulative_similarity": 0.3864,
+            "is_breaking_point": false
+          },
+          {
+            "step_index": 2,
+            "channel_name": "X (Twitter) Gönderisi",
+            "consecutive_similarity": 0.2598,
+            "consecutive_deviation": 0.7402,
+            "cumulative_similarity": 0.698,
+            "is_breaking_point": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "f278b1b8",
+      "type": "analysis",
+      "created_at": "2026-08-01T02:05:38",
+      "core_message": "Yoğun kar yağışı nedeniyle Elazığ genelinde yarın tüm okullar 1 gün süreyle tatil edilmiştir.",
+      "platforms": [
+        {
+          "id": "press_release",
+          "name": "Basın Açıklaması (Press Release)",
+          "transformed_content": "Yoğun kar yağışı nedeniyle Elazığ genelinde yarın tüm okullar 1 gün süreyle tatil edilmiştir. Kamuoyuna duyurulur.",
+          "semantic_similarity": 99.45,
+          "info_loss": false,
+          "cta_strength": "0/10",
+          "sentiment": "NEG",
+          "ambiguity": "Orta",
+          "ambiguity_score": 0.3885,
+          "is_breaking_point": false
+        },
+        {
+          "id": "x_twitter",
+          "name": "X (Twitter) Gönderisi",
+          "transformed_content": "Elazığda yarın tüm okullar 1 gün tatil! Resmi duyuruları takip edin.",
+          "semantic_similarity": 83.2,
+          "info_loss": false,
+          "cta_strength": "5/5",
+          "sentiment": "POS",
+          "ambiguity": "Yüksek",
+          "ambiguity_score": 0.7817,
+          "is_breaking_point": false
+        },
+        {
+          "id": "tabloid",
+          "name": "Magazin / Tabloid Haberi",
+          "transformed_content": "FLAŞ! Okullar kapandı, kaos kapıda! Veliler isyanda!",
+          "semantic_similarity": 42.08,
+          "info_loss": true,
+          "cta_strength": "0/5",
+          "sentiment": "NEG",
+          "ambiguity": "Orta",
+          "ambiguity_score": 0.6171,
+          "is_breaking_point": false
+        },
+        {
+          "id": "linkedin",
+          "name": "LinkedIn Gönderisi",
+          "transformed_content": "Stratejik bilgilendirme: eğitim süreçleri değerlendirilmektedir.",
+          "semantic_similarity": 18.24,
+          "info_loss": true,
+          "cta_strength": "0/10",
+          "sentiment": "POS",
+          "ambiguity": "Orta",
+          "ambiguity_score": 0.5003,
+          "is_breaking_point": false
+        },
+        {
+          "id": "agency_news",
+          "name": "Ajans Haberi (Agency News)",
+          "transformed_content": "ANKARA - Elazığ genelinde yarın okullar 1 gün tatil edildi.",
+          "semantic_similarity": 89.56,
+          "info_loss": false,
+          "cta_strength": "0/5",
+          "sentiment": "NEG",
+          "ambiguity": "Düşük",
+          "ambiguity_score": 0.327,
+          "is_breaking_point": false
+        },
+        {
+          "id": "vertical_video",
+          "name": "Dikey Video Senaryosu (TikTok / Reels)",
+          "transformed_content": "Önemli duyuru: yarın okullar tatil. Takip edin!",
+          "semantic_similarity": 68.57,
+          "info_loss": true,
+          "cta_strength": "5/5",
+          "sentiment": "POS",
+          "ambiguity": "Orta",
+          "ambiguity_score": 0.5515,
+          "is_breaking_point": false
+        },
+        {
+          "id": "messaging_chain",
+          "name": "Mesajlaşma Zinciri (WhatsApp)",
+          "transformed_content": "Arkadaşlar Elazığda yarın okullar 1 gün tatil, iletin.",
+          "semantic_similarity": 67.96,
+          "info_loss": false,
+          "cta_strength": "5/5",
+          "sentiment": "POS",
+          "ambiguity": "Orta",
+          "ambiguity_score": 0.609,
+          "is_breaking_point": false
+        },
+        {
+          "id": "official_letter",
+          "name": "Resmi Yazı / Kurumsal Dilekçe",
+          "transformed_content": "Konu: Yoğun kar yağışı nedeniyle Elazığ genelinde yarın tüm okullar 1 gün süreyle tatil edilmiştir.",
+          "semantic_similarity": 98.73,
+          "info_loss": false,
+          "cta_strength": "0/5",
+          "sentiment": "NEG",
+          "ambiguity": "Düşük",
+          "ambiguity_score": 0.3278,
+          "is_breaking_point": false
+        }
+      ],
+      "degradation_chain": {
+        "has_breaking_point": true,
+        "breaking_point_channel": "Ajans Haberi (Agency News)",
+        "max_consecutive_deviation": 0.8031,
+        "steps": [
+          {
+            "step_index": 1,
+            "channel_name": "Basın Açıklaması (Press Release)",
+            "consecutive_similarity": 0.9909,
+            "consecutive_deviation": 0.0091,
+            "cumulative_similarity": 0.9909,
+            "is_breaking_point": false
+          },
+          {
+            "step_index": 2,
+            "channel_name": "X (Twitter) Gönderisi",
+            "consecutive_similarity": 0.8562,
+            "consecutive_deviation": 0.1438,
+            "cumulative_similarity": 0.8252,
+            "is_breaking_point": false
+          },
+          {
+            "step_index": 3,
+            "channel_name": "Magazin / Tabloid Haberi",
+            "consecutive_similarity": 0.4014,
+            "consecutive_deviation": 0.5986,
+            "cumulative_similarity": 0.362,
+            "is_breaking_point": false
+          },
+          {
+            "step_index": 4,
+            "channel_name": "LinkedIn Gönderisi",
+            "consecutive_similarity": 0.2162,
+            "consecutive_deviation": 0.7838,
+            "cumulative_similarity": 0.1647,
+            "is_breaking_point": false
+          },
+          {
+            "step_index": 5,
+            "channel_name": "Ajans Haberi (Agency News)",
+            "consecutive_similarity": 0.1969,
+            "consecutive_deviation": 0.8031,
+            "cumulative_similarity": 0.8939,
+            "is_breaking_point": true
+          },
+          {
+            "step_index": 6,
+            "channel_name": "Dikey Video Senaryosu (TikTok / Reels)",
+            "consecutive_similarity": 0.6977,
+            "consecutive_deviation": 0.3023,
+            "cumulative_similarity": 0.6665,
+            "is_breaking_point": false
+          },
+          {
+            "step_index": 7,
+            "channel_name": "Mesajlaşma Zinciri (WhatsApp)",
+            "consecutive_similarity": 0.8139,
+            "consecutive_deviation": 0.1861,
+            "cumulative_similarity": 0.7738,
+            "is_breaking_point": false
+          },
+          {
+            "step_index": 8,
+            "channel_name": "Resmi Yazı / Kurumsal Dilekçe",
+            "consecutive_similarity": 0.8079,
+            "consecutive_deviation": 0.1921,
+            "cumulative_similarity": 0.9881,
+            "is_breaking_point": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "1cf86996",
+      "type": "analysis",
+      "created_at": "2026-08-01T01:59:27",
+      "core_message": "Yoğun kar yağışı nedeniyle Elazığ genelinde yarın tüm okullar 1 gün süreyle tatil edilmiştir.",
+      "platforms": [
+        {
+          "id": "press_release",
+          "name": "Basın Açıklaması (Press Release)",
+          "transformed_content": "Yoğun kar yağışı nedeniyle Elazığ genelinde yarın tüm okullar 1 gün süreyle tatil edilmiştir. Kamuoyuna duyurulur.",
+          "semantic_similarity": 99.45,
+          "info_loss": false,
+          "cta_strength": "0/10",
+          "sentiment": "NEG",
+          "ambiguity": "Orta",
+          "ambiguity_score": 0.3885,
+          "is_breaking_point": false
+        },
+        {
+          "id": "x_twitter",
+          "name": "X (Twitter) Gönderisi",
+          "transformed_content": "🚨 Elazığ'da yarın tüm okullar 1 gün tatil! Resmi duyuruları takip edin. #SonDakika",
+          "semantic_similarity": 81.92,
+          "info_loss": false,
+          "cta_strength": "5/5",
+          "sentiment": "POS",
+          "ambiguity": "Yüksek",
+          "ambiguity_score": 0.7817,
+          "is_breaking_point": false
+        },
+        {
+          "id": "tabloid",
+          "name": "Magazin / Tabloid Haberi",
+          "transformed_content": "FLAŞ! Okullar kapandı, kaos kapıda! Veliler isyanda!",
+          "semantic_similarity": 42.08,
+          "info_loss": true,
+          "cta_strength": "0/0",
+          "sentiment": "NEG",
+          "ambiguity": "Orta",
+          "ambiguity_score": 0.6171,
+          "is_breaking_point": false
+        }
+      ],
+      "degradation_chain": {
+        "has_breaking_point": true,
+        "breaking_point_channel": "Magazin / Tabloid Haberi",
+        "max_consecutive_deviation": 0.5335,
+        "steps": [
+          {
+            "step_index": 1,
+            "channel_name": "Basın Açıklaması (Press Release)",
+            "consecutive_similarity": 0.9909,
+            "consecutive_deviation": 0.0091,
+            "cumulative_similarity": 0.9909,
+            "is_breaking_point": false
+          },
+          {
+            "step_index": 2,
+            "channel_name": "X (Twitter) Gönderisi",
+            "consecutive_similarity": 0.8397,
+            "consecutive_deviation": 0.1603,
+            "cumulative_similarity": 0.8102,
+            "is_breaking_point": false
+          },
+          {
+            "step_index": 3,
+            "channel_name": "Magazin / Tabloid Haberi",
+            "consecutive_similarity": 0.4665,
+            "consecutive_deviation": 0.5335,
+            "cumulative_similarity": 0.362,
+            "is_breaking_point": true
+          }
+        ]
+      }
+    }
+  ],
   "benchmarks": [
     {
       "id": "f62bb9f8",

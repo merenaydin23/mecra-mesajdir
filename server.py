@@ -32,9 +32,9 @@ from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("🚀 [SUNUCU] Modeller arka planda ön-yükleniyor (Pre-warming)...")
+    print("🚀 [SUNUCU] Tüm analiz modelleri arka planda ön-yükleniyor...")
     try:
-        asyncio.create_task(asyncio.to_thread(analyzer_service._load_models))
+        asyncio.create_task(asyncio.to_thread(analyzer_service.prewarm))
     except Exception as e:
         print(f"⚠️ [SUNUCU] Pre-warm atlandı: {e}")
     yield
@@ -146,10 +146,26 @@ async def fast_analyze(req: AnalyzeRequest):
                 "transformed_content": msg.transformed_content,
                 "semantic_similarity": res.semantic_similarity.semantic_similarity_percentage,
                 "info_loss": res.info_loss.info_loss_occurred,
+                "info_loss_rate": res.info_loss.info_loss_rate,
+                "checked_facts_count": res.info_loss.checked_facts_count,
+                "fact_details": res.info_loss.fact_details,
+                "has_cta": res.cta.has_cta,
                 "cta_strength": res.cta.strength_text,
+                "cta_words": res.cta.cta_words,
+                "cta_sentences": res.cta.cta_sentences,
+                "cta_person": res.cta.person_type,
+                "cta_score": res.cta.strength_score,
                 "sentiment": res.sentiment.label,
+                "sentiment_pos": res.sentiment.pos_prob,
+                "sentiment_neg": res.sentiment.neg_prob,
+                "sentiment_intensity": res.sentiment.intensity_score,
+                "emoji_count": res.sentiment.emoji_count,
+                "punct_count": res.sentiment.punct_count,
                 "ambiguity": res.ambiguity.level,
                 "ambiguity_score": res.ambiguity.ambiguity_score,
+                "clarity_score": res.ambiguity.clarity_score,
+                "most_ambiguous_sentence": res.ambiguity.most_ambiguous_sentence,
+                "ambiguity_sentences": res.ambiguity.sentence_details,
                 "is_breaking_point": False
             })
 

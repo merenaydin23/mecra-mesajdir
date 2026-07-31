@@ -4,12 +4,34 @@ Eylem Çağrısı (CTA - Call To Action) Analizörü (Infrastructure Katmanı)
 Stanza ve Türkçe Morfolojik Dilbilgisi Çözümlemesi ile Eylem Çağrısı Analizi.
 """
 
+import re
 import torch
 from typing import List
 
 from src.domain.entities.channel import ChannelType
 from src.domain.entities.message import TransformedMessage
 from src.domain.entities.analysis_result import CTAResult
+
+
+def _split_sentences(text: str) -> List[str]:
+    parts = re.split(r"(?<=[.!?…])\s+|\n+", (text or "").strip())
+    return [p.strip() for p in parts if p and p.strip()]
+
+
+def _find_cta_sentences(text: str, markers: List[str]) -> List[str]:
+    """CTA kelime/ifadelerini içeren cümleleri bulur (tespit mantığını değiştirmez)."""
+    if not text or not markers:
+        return []
+    found = []
+    lower_markers = [m.lower() for m in markers if m]
+    for sentence in _split_sentences(text):
+        s_low = sentence.lower()
+        if any(m in s_low for m in lower_markers):
+            found.append(sentence)
+    # Tek cümle metinlerinde marker varsa tüm metni döndür
+    if not found and any(m in text.lower() for m in lower_markers):
+        found.append(text.strip())
+    return found
 
 
 # PyTorch 2.x patching for Stanza model loading
@@ -112,6 +134,7 @@ class CTAAnalyzer:
             verb_count=toplam_fiil,
             all_verbs=tum_fiiller,
             cta_words=cta_kelimeleri,
+            cta_sentences=_find_cta_sentences(metin, cta_kelimeleri),
             strength_score=normalized_score,
             strength_text=skor_metni,
             person_type=hitap_metni,
@@ -119,7 +142,8 @@ class CTAAnalyzer:
 
     def _fallback_analyze(self, transformed: TransformedMessage) -> CTAResult:
         """Stanza kütüphanesi hazır değilse temel regex/keyword fallback'i."""
-        metin = transformed.transformed_content.lower()
+        raw = transformed.transformed_content or ""
+        metin = raw.lower()
         cta_keywords = ["takip edin", "tıklayın", "katılın", "okuyun", "raporlayın", "abone olun", "izleyin", "paylaşın"]
         found = [kw for kw in cta_keywords if kw in metin]
         return CTAResult(
@@ -128,6 +152,7 @@ class CTAAnalyzer:
             verb_count=len(found),
             all_verbs=found,
             cta_words=found,
+            cta_sentences=_find_cta_sentences(raw, found),
             strength_score=0.5 if len(found) > 0 else 0.0,
             strength_text=f"{len(found)*5}/{len(found)*5}" if len(found) > 0 else "0/0",
             person_type="2. Çoğul (Siz)" if len(found) > 0 else "Yok",

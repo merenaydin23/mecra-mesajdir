@@ -365,7 +365,7 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
                 escaped_val = re.escape(val_clean)
                 found = bool(re.search(r"\b" + escaped_val + r"\b", target_lower)) or (val_clean in target_lower)
             matched += int(found)
-            details.append({"label": label, "value": val, "found": bool(found)})
+            details.append(self._fact_detail_row(label, val, bool(found)))
 
         # 2. NER Kontrolü
         for label, val in ents:
@@ -376,7 +376,7 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
             else:
                 found = any(re.search(r"\b" + re.escape(tok) + r"\b", target_lower) for tok in tokens)
             matched += int(found)
-            details.append({"label": label, "value": val, "found": bool(found)})
+            details.append(self._fact_detail_row(label, val, bool(found)))
 
         if total == 0:
             return None, 0, details
@@ -405,24 +405,57 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
         emb2 = self._embed_model.encode(text_b, convert_to_tensor=True)
         return round(util.cos_sim(emb1, emb2).item() * 100, 2)
 
-    # --- ANA ANALİZ METHODLARI ---
-    def _sync_analyze_pair(self, core: CoreMessage, transformed: TransformedMessage) -> CombinedAnalysisResult:
-        self._load_models()
+    @staticmethod
+    def _fact_detail_row(label: str, val: str, found: bool) -> dict:
+        """Somut, okunabilir olgu satırı (algoritma kararını değiştirmez)."""
+        return {
+            "label": label,
+            "value": val,
+            "found": found,
+            "status": "DURUYOR" if found else "YOK",
+            "in_core": True,
+            "in_target": found,
+            "explain": (
+                f"Asıl mesajda «{val}» var → bu platformda "
+                + ("duruyor ✓" if found else "YOK ✗")
+            ),
+        }
 
+    def prewarm(self) -> None:
+        """Tüm alt modelleri önceden yükler (ilk analiz gecikmesini kırar)."""
+        self._load_models()
+        try:
+            self._cta_analyzer._load_nlp()
+        except Exception:
+            pass
+        try:
+            self._sentiment_analyzer._load_model()
+        except Exception:
+            pass
+        try:
+            self._ambiguity_analyzer._load_model()
+        except Exception:
+            pass
+        try:
+            self._degradation_analyzer._load_model()
+        except Exception:
+            pass
+
+    # --- ANA ANALİZ METHODLARI ---
+    def _build_pair_result(
+        self,
+        core: CoreMessage,
+        transformed: TransformedMessage,
+        cos_sim: float,
+    ) -> CombinedAnalysisResult:
+        """Tek platform analizi — eşikler ve karar mantığı aynı."""
         core_text = core.content
         target_text = transformed.transformed_content
 
-        # 1. Cosine Benzerlik
-        cos_sim = self._get_cosine_sim(core_text, target_text)
-
-        # 2. Olgu Tutarlılığı & Bilgi Kaybı
         fact_score, fact_total, fact_details = self._dynamic_fact_consistency(core_text, target_text)
-
-        # 3. NLI Çelişki Skoru
         fwd_nli = self._get_nli_probs(core_text, target_text)
         fwd_contra = fwd_nli.get("contradiction", 0.0)
 
-        # 4. Sapma & Kayıp Kararı
         if fact_score is not None:
             info_loss_rate = round(100.0 - fact_score, 1)
             info_loss_occurred = (fact_score <= FACT_HIDE_THRESHOLD) or (fwd_contra >= NOTABLE_THRESHOLD)
@@ -432,40 +465,59 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
 
         topic_preserved = cos_sim >= TOPIC_RELATION_THRESHOLD
 
-        info_loss_res = InfoLossResult(
-            channel=transformed.channel,
-            info_loss_occurred=info_loss_occurred,
-            info_loss_rate=info_loss_rate,
-            checked_facts_count=fact_total,
-            fact_details=fact_details,
-        )
-
-        semantic_res = SemanticSimilarityResult(
-            channel=transformed.channel,
-            semantic_similarity_percentage=cos_sim,
-            topic_preserved=topic_preserved,
-        )
-
-        # 5. CTA Analizi
-        cta_res = self._cta_analyzer.analyze(transformed)
-
-        # 6. Duygu Yoğunluğu Analizi
-        sentiment_res = self._sentiment_analyzer.analyze(transformed)
-
-        # 7. Belirsizlik Analizi
-        ambiguity_res = self._ambiguity_analyzer.analyze(transformed)
-
         return CombinedAnalysisResult(
             channel=transformed.channel,
             channel_name=CHANNEL_NAMES.get(transformed.channel, transformed.channel.value),
             original_content=core_text,
             transformed_content=target_text,
-            info_loss=info_loss_res,
-            semantic_similarity=semantic_res,
-            cta=cta_res,
-            sentiment=sentiment_res,
-            ambiguity=ambiguity_res,
+            info_loss=InfoLossResult(
+                channel=transformed.channel,
+                info_loss_occurred=info_loss_occurred,
+                info_loss_rate=info_loss_rate,
+                checked_facts_count=fact_total,
+                fact_details=fact_details,
+            ),
+            semantic_similarity=SemanticSimilarityResult(
+                channel=transformed.channel,
+                semantic_similarity_percentage=cos_sim,
+                topic_preserved=topic_preserved,
+            ),
+            cta=self._cta_analyzer.analyze(transformed),
+            sentiment=self._sentiment_analyzer.analyze(transformed),
+            ambiguity=self._ambiguity_analyzer.analyze(transformed),
         )
+
+    def _sync_analyze_pair(self, core: CoreMessage, transformed: TransformedMessage) -> CombinedAnalysisResult:
+        self._load_models()
+        cos_sim = self._get_cosine_sim(core.content, transformed.transformed_content)
+        return self._build_pair_result(core, transformed, cos_sim)
+
+    def _batch_cosine_sims(self, core_text: str, target_texts: List[str]) -> List[float]:
+        """Tek encode çağrısıyla tüm platform benzerliklerini hesaplar (hız)."""
+        if not target_texts:
+            return []
+        if self._embed_model is None:
+            return [self._get_cosine_sim(core_text, t) for t in target_texts]
+        embs = self._embed_model.encode([core_text] + target_texts, convert_to_tensor=True)
+        core_emb = embs[0]
+        sims = []
+        for i in range(1, len(embs)):
+            sims.append(round(util.cos_sim(core_emb, embs[i]).item() * 100, 2))
+        return sims
+
+    def _sync_analyze_all(
+        self, core: CoreMessage, transformed_list: List[TransformedMessage]
+    ) -> Tuple[List[CombinedAnalysisResult], DegradationChainResult]:
+        """Tek iş parçacığında batch embedding + sıralı analiz (CPU'da daha hızlı)."""
+        self.prewarm()
+        target_texts = [t.transformed_content for t in transformed_list]
+        sims = self._batch_cosine_sims(core.content, target_texts)
+        results = [
+            self._build_pair_result(core, transformed, sims[i])
+            for i, transformed in enumerate(transformed_list)
+        ]
+        degradation_result = self._degradation_analyzer.analyze_chain(core, transformed_list)
+        return results, degradation_result
 
     async def analyze_pair(self, core: CoreMessage, transformed: TransformedMessage) -> CombinedAnalysisResult:
         """Çekirdek mesaj ile tek bir mecradan gelen mesajı kıyaslar (Non-blocking)."""
@@ -474,11 +526,5 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
     async def analyze_all(
         self, core: CoreMessage, transformed_list: List[TransformedMessage]
     ) -> Tuple[List[CombinedAnalysisResult], DegradationChainResult]:
-        """Tüm dönüştürülmüş mecralar için analizleri paralel olarak yüksek hızda yapar."""
-        tasks = [self.analyze_pair(core, transformed) for transformed in transformed_list]
-        results = list(await asyncio.gather(*tasks))
-
-        # Bozulma Zinciri (Degradation Chain) Analizi
-        degradation_result = self._degradation_analyzer.analyze_chain(core, transformed_list)
-
-        return results, degradation_result
+        """Tüm mecraları tek batch'te analiz eder (embedding paylaşımı + model thrash yok)."""
+        return await asyncio.to_thread(self._sync_analyze_all, core, transformed_list)
