@@ -11,7 +11,8 @@ const appState = {
   selectedPlatformForDiff: 'x_twitter',
   transformedMessages: {},
   analysisResults: [],
-  degradationChain: []
+  degradationChain: [],
+  lastBenchmark: null
 };
 
 // Mecra Tanımları, İkonları ve Kurumsal Logoları
@@ -120,6 +121,12 @@ function initTabNavigation() {
       if (targetTab === 'analytics') {
         renderAnalyticsCharts();
         renderDiffViewer();
+      }
+      if (targetTab === 'lab') {
+        loadServerHistory();
+        if (appState.lastBenchmark) {
+          renderBenchmarkReport(appState.lastBenchmark);
+        }
       }
     });
   });
@@ -829,4 +836,187 @@ function clearAllHistory() {
   renderQuickHistoryChips();
   closeHistoryModal();
   showToast('Tüm arama geçmişi temizlendi.', 'info');
+}
+
+// ============================================================
+// DOĞRULUK LABORATUVARI (Benchmark Lab)
+// ============================================================
+
+async function runBenchmarkLab() {
+  const btn = document.getElementById('btn-run-benchmark');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="animate-pulse">Analiz motoru çalışıyor...</span>';
+  }
+  showToast('🧪 5 altın senaryo Colab algoritmasıyla test ediliyor...', 'info');
+
+  const container = document.getElementById('lab-scenario-results');
+  if (container) {
+    container.innerHTML = `
+      <div class="corporate-card p-8 text-center space-y-3">
+        <div class="w-10 h-10 mx-auto rounded-full border-4 border-[#00A3A6] border-t-transparent animate-spin"></div>
+        <p class="text-sm text-slate-600 font-medium">NLI + Embedding + CTA + Duygu + Belirsizlik modelleri yükleniyor...</p>
+        <p class="text-xs text-slate-400">İlk çalıştırmada 30-60 sn sürebilir</p>
+      </div>`;
+  }
+
+  try {
+    const res = await fetch('/api/benchmark', { method: 'POST' });
+    if (!res.ok) throw new Error(await res.text());
+    const report = await res.json();
+    appState.lastBenchmark = report;
+    renderBenchmarkReport(report);
+    loadServerHistory();
+    showToast(`🎯 Doğruluk: %${report.overall_accuracy} — ${report.grade}`, 'success');
+  } catch (err) {
+    console.error(err);
+    if (container) {
+      container.innerHTML = `<div class="corporate-card p-6 text-rose-600 text-sm">Benchmark hatası: ${escapeHtml(String(err.message || err))}</div>`;
+    }
+    showToast('Benchmark çalıştırılamadı.', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i data-lucide="play" class="w-4 h-4"></i><span>5 Senaryoyu Çalıştır</span>';
+      initLucideIcons();
+    }
+  }
+}
+
+function renderBenchmarkReport(report) {
+  const overallEl = document.getElementById('lab-overall');
+  const gradeEl = document.getElementById('lab-grade');
+  const passedEl = document.getElementById('lab-passed');
+  const mmdEl = document.getElementById('lab-mmd');
+  const summaryEl = document.getElementById('lab-summary');
+  const container = document.getElementById('lab-scenario-results');
+
+  if (overallEl) overallEl.textContent = `%${report.overall_accuracy}`;
+  if (gradeEl) gradeEl.textContent = report.grade || '—';
+  if (passedEl) passedEl.textContent = `${report.total_passed}/${report.total_checks}`;
+  if (mmdEl) mmdEl.textContent = report.degradation_smoke?.ok ? 'OK ✅' : 'HATA ❌';
+  if (summaryEl) summaryEl.textContent = report.summary || '';
+
+  if (!container || !report.scenarios) return;
+
+  container.innerHTML = report.scenarios.map((sc) => {
+    const accColor = sc.accuracy >= 80 ? 'text-emerald-600' : sc.accuracy >= 60 ? 'text-amber-600' : 'text-rose-600';
+    const rows = (sc.platforms || []).map((p) => {
+      const a = p.actual || {};
+      const checksHtml = (p.score?.checks || []).map((c) => `
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border ${c.pass ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}">
+          ${c.pass ? '✓' : '✗'} ${escapeHtml(c.metric)}
+        </span>`).join('');
+      return `
+        <div class="p-4 rounded-xl border border-slate-100 bg-slate-50/60 space-y-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="font-bold text-sm text-slate-800">${escapeHtml(p.channel_name || p.channel)}</div>
+            <div class="text-xs font-black ${p.score?.accuracy >= 80 ? 'text-emerald-600' : 'text-rose-600'}">Mecra doğruluk: %${p.score?.accuracy ?? 0}</div>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-[11px]">
+            <div><span class="text-slate-500">Benzerlik</span><br><strong>%${a.sim ?? '-'}</strong></div>
+            <div><span class="text-slate-500">Bilgi Kaybı</span><br><strong>${a.info_loss ? 'Evet' : 'Hayır'}</strong></div>
+            <div><span class="text-slate-500">CTA</span><br><strong>${a.has_cta ? 'Var' : 'Yok'} (${escapeHtml(a.cta_strength || '-')})</strong></div>
+            <div><span class="text-slate-500">Duygu</span><br><strong>${escapeHtml(a.sentiment || '-')}</strong></div>
+            <div><span class="text-slate-500">Belirsizlik</span><br><strong>${escapeHtml(a.ambiguity || '-')}</strong></div>
+          </div>
+          <div class="flex flex-wrap gap-1.5">${checksHtml}</div>
+          <details class="text-xs text-slate-500">
+            <summary class="cursor-pointer font-semibold text-slate-600">Mecra metni</summary>
+            <pre class="mt-2 whitespace-pre-wrap bg-white border border-slate-200 rounded-lg p-3 text-slate-700">${escapeHtml(p.transformed_content || '')}</pre>
+          </details>
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="corporate-card p-5 space-y-3">
+        <div class="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-3">
+          <div>
+            <div class="text-[10px] font-bold uppercase tracking-wider text-[#00A3A6]">${escapeHtml(sc.id)}</div>
+            <h4 class="font-bold text-slate-900">${escapeHtml(sc.name)}</h4>
+            <p class="text-xs text-slate-500 mt-1 max-w-2xl">${escapeHtml(sc.core)}</p>
+          </div>
+          <div class="text-right">
+            <div class="text-2xl font-black ${accColor}">%${sc.accuracy}</div>
+            <div class="text-[11px] text-slate-500">${sc.passed}/${sc.total} kontrol</div>
+          </div>
+        </div>
+        <div class="space-y-3">${rows}</div>
+      </div>`;
+  }).join('');
+
+  initLucideIcons();
+}
+
+async function loadServerHistory() {
+  const listEl = document.getElementById('lab-server-history');
+  if (!listEl) return;
+  try {
+    const res = await fetch('/api/history?limit=20');
+    if (!res.ok) throw new Error('history fetch failed');
+    const data = await res.json();
+    const items = data.items || [];
+    if (!items.length) {
+      listEl.innerHTML = '<p class="text-xs text-slate-400 italic">Sunucu geçmişi boş. Benchmark veya analiz çalıştır.</p>';
+      return;
+    }
+    listEl.innerHTML = items.map((item) => {
+      const isBench = item.type === 'benchmark';
+      const title = isBench
+        ? `Benchmark — %${item.overall_accuracy} (${escapeHtml(item.grade || '')})`
+        : `Analiz — ${escapeHtml((item.core_message || '').substring(0, 70))}`;
+      return `
+        <button onclick="openHistoryDetail('${item.id}')" class="w-full text-left p-3 rounded-xl border border-slate-100 hover:border-[#00A3A6] hover:bg-teal-50/40 transition-colors flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <div class="text-xs font-bold text-slate-800 truncate">${title}</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">${escapeHtml(item.created_at || '')} · ${isBench ? '🧪 Lab' : '📊 Analiz'}</div>
+          </div>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 shrink-0"></i>
+        </button>`;
+    }).join('');
+    initLucideIcons();
+  } catch (e) {
+    listEl.innerHTML = '<p class="text-xs text-rose-500">Geçmiş yüklenemedi (sunucu kapalı olabilir).</p>';
+  }
+}
+
+async function openHistoryDetail(id) {
+  const detail = document.getElementById('lab-history-detail');
+  if (!detail) return;
+  detail.classList.remove('hidden');
+  detail.innerHTML = '<p class="text-xs text-slate-400">Yükleniyor...</p>';
+  try {
+    const res = await fetch(`/api/history/${id}`);
+    if (!res.ok) throw new Error('not found');
+    const item = await res.json();
+    if (item.type === 'benchmark' && item.report) {
+      renderBenchmarkReport(item.report);
+      detail.innerHTML = `<p class="text-sm text-emerald-700 font-semibold">Bu benchmark raporu yukarıdaki lab paneline yüklendi. (ID: ${escapeHtml(id)})</p>`;
+      return;
+    }
+    const platforms = item.platforms || [];
+    detail.innerHTML = `
+      <h4 class="font-bold text-sm text-slate-800">Analiz Detayı</h4>
+      <p class="text-xs text-slate-600 mb-2">${escapeHtml(item.core_message || '')}</p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs text-left">
+          <thead><tr class="bg-slate-50 text-slate-500 uppercase tracking-wider">
+            <th class="py-2 px-2">Mecra</th><th class="py-2 px-2">Benzerlik</th><th class="py-2 px-2">Kayıp</th><th class="py-2 px-2">CTA</th><th class="py-2 px-2">Duygu</th><th class="py-2 px-2">Belirsizlik</th>
+          </tr></thead>
+          <tbody>
+            ${platforms.map(p => `
+              <tr class="border-b border-slate-100">
+                <td class="py-2 px-2 font-semibold">${escapeHtml(p.name || p.id)}</td>
+                <td class="py-2 px-2 text-emerald-600 font-bold">%${p.semantic_similarity ?? '-'}</td>
+                <td class="py-2 px-2">${p.info_loss ? 'Evet' : 'Hayır'}</td>
+                <td class="py-2 px-2">${escapeHtml(p.cta_strength || '-')}</td>
+                <td class="py-2 px-2">${escapeHtml(p.sentiment || '-')}</td>
+                <td class="py-2 px-2">${escapeHtml(p.ambiguity || '-')}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch (e) {
+    detail.innerHTML = '<p class="text-xs text-rose-500">Detay açılamadı.</p>';
+  }
 }

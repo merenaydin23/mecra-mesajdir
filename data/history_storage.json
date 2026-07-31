@@ -1,0 +1,2219 @@
+{
+  "analyses": [],
+  "benchmarks": [
+    {
+      "id": "f62bb9f8",
+      "type": "benchmark",
+      "created_at": "2026-08-01T01:38:04",
+      "overall_accuracy": 100.0,
+      "grade": "A+ Üretim Kalitesi",
+      "summary": "Genel doğruluk %100.0. En güçlü: Okul Tatili — Düşük Risk (Olgu Korunmuş) (%100.0). En zayıf: Okul Tatili — Düşük Risk (Olgu Korunmuş) (%100.0).",
+      "report": {
+        "timestamp": "2026-08-01T01:38:04",
+        "overall_accuracy": 100.0,
+        "total_passed": 54,
+        "total_checks": 54,
+        "grade": "A+ Üretim Kalitesi",
+        "degradation_smoke": {
+          "ok": true,
+          "has_breaking_point": false,
+          "max_deviation": 0.0153,
+          "steps": 4
+        },
+        "scenarios": [
+          {
+            "id": "T1_okul_tatili",
+            "name": "Okul Tatili — Düşük Risk (Olgu Korunmuş)",
+            "core": "Yoğun kar yağışı nedeniyle Elazığ genelinde yarın tüm okullar 1 gün süreyle tatil edilmiştir.",
+            "platforms": [
+              {
+                "channel": "press_release",
+                "channel_name": "Basın Açıklaması (Press Release)",
+                "transformed_content": "T.C. İLETİŞİM BAŞKANLIĞI\nBASIN AÇIKLAMASI\n\nYoğun kar yağışı nedeniyle Elazığ genelinde yarın tüm okullar 1 gün süreyle tatil edilmiştir. Vatandaşlarımızın yalnızca resmi kanallardan yapılan duyurulara itibar etmeleri önemle rica olunur. Kamuoyuna saygıyla duyurulur.",
+                "actual": {
+                  "sim": 90.87,
+                  "topic_preserved": true,
+                  "info_loss": false,
+                  "info_loss_rate": 0.0,
+                  "has_cta": false,
+                  "cta_strength": "0/25",
+                  "sentiment": "NEG",
+                  "intensity": 0.875,
+                  "ambiguity": "Orta",
+                  "ambiguity_score": 0.5023
+                },
+                "expected": {
+                  "info_loss": false,
+                  "topic_preserved": true,
+                  "sim_min": 75.0,
+                  "ambiguity_max": "Orta"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_min",
+                      "expected": ">=75.0",
+                      "actual": 90.87,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_max",
+                      "expected": "<=Orta",
+                      "actual": "Orta",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 4,
+                  "total": 4,
+                  "accuracy": 100.0
+                }
+              },
+              {
+                "channel": "x_twitter",
+                "channel_name": "X (Twitter) Gönderisi",
+                "transformed_content": "🚨 SON DAKİKA\n📌 ÖZET: Yoğun kar yağışı nedeniyle Elazığ genelinde yarın tüm okullar 1 gün tatil.\n📢 Resmi açıklamaları takip edin.\n#SonDakika #Elazığ",
+                "actual": {
+                  "sim": 87.82,
+                  "topic_preserved": true,
+                  "info_loss": false,
+                  "info_loss_rate": 0.0,
+                  "has_cta": true,
+                  "cta_strength": "5/5",
+                  "sentiment": "POS",
+                  "intensity": 1.0,
+                  "ambiguity": "Orta",
+                  "ambiguity_score": 0.6454
+                },
+                "expected": {
+                  "info_loss": false,
+                  "topic_preserved": true,
+                  "sim_min": 70.0,
+                  "has_cta": true,
+                  "ambiguity_max": "Orta"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_min",
+                      "expected": ">=70.0",
+                      "actual": 87.82,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_max",
+                      "expected": "<=Orta",
+                      "actual": "Orta",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 5,
+                  "total": 5,
+                  "accuracy": 100.0
+                }
+              }
+            ],
+            "passed": 9,
+            "total": 9,
+            "accuracy": 100.0
+          },
+          {
+            "id": "T2_kuculme_korunmus",
+            "name": "Küçülme Kararı — Korunmuş Resmi Metin",
+            "core": "Şirketimiz 2026 yılı üçüncü çeyreğinde yüzde 15 küçülmeye gitme kararı almıştır.",
+            "platforms": [
+              {
+                "channel": "press_release",
+                "channel_name": "Basın Açıklaması (Press Release)",
+                "transformed_content": "Kamuoyuna duyuru: Şirketimiz 2026 yılı üçüncü çeyrek stratejik planlaması kapsamında yüzde 15 küçülme kararı almıştır.",
+                "actual": {
+                  "sim": 94.05,
+                  "topic_preserved": true,
+                  "info_loss": false,
+                  "info_loss_rate": 0.0,
+                  "has_cta": false,
+                  "cta_strength": "0/10",
+                  "sentiment": "NEG",
+                  "intensity": 0.9916,
+                  "ambiguity": "Orta",
+                  "ambiguity_score": 0.3937
+                },
+                "expected": {
+                  "info_loss": false,
+                  "topic_preserved": true,
+                  "sim_min": 85.0,
+                  "has_cta": false,
+                  "ambiguity_max": "Orta"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_min",
+                      "expected": ">=85.0",
+                      "actual": 94.05,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_max",
+                      "expected": "<=Orta",
+                      "actual": "Orta",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 5,
+                  "total": 5,
+                  "accuracy": 100.0
+                }
+              },
+              {
+                "channel": "agency_news",
+                "channel_name": "Ajans Haberi (Agency News)",
+                "transformed_content": "SON DAKİKA - Şirket yönetimi 2026'nın 3. çeyreğinde %15 küçülmeye gideceğini resmi açıklamayla bildirdi.",
+                "actual": {
+                  "sim": 92.57,
+                  "topic_preserved": true,
+                  "info_loss": false,
+                  "info_loss_rate": 0.0,
+                  "has_cta": false,
+                  "cta_strength": "0/20",
+                  "sentiment": "NEG",
+                  "intensity": 0.5191,
+                  "ambiguity": "Orta",
+                  "ambiguity_score": 0.4458
+                },
+                "expected": {
+                  "info_loss": false,
+                  "topic_preserved": true,
+                  "sim_min": 80.0,
+                  "has_cta": false,
+                  "ambiguity_max": "Orta"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_min",
+                      "expected": ">=80.0",
+                      "actual": 92.57,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_max",
+                      "expected": "<=Orta",
+                      "actual": "Orta",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 5,
+                  "total": 5,
+                  "accuracy": 100.0
+                }
+              }
+            ],
+            "passed": 10,
+            "total": 10,
+            "accuracy": 100.0
+          },
+          {
+            "id": "T3_kuculme_kayip",
+            "name": "Küçülme Kararı — Bilgi Kaybı / Belirsizlik Tuzağı",
+            "core": "Şirketimiz 2026 yılı üçüncü çeyreğinde yüzde 15 küçülmeye gitme kararı almıştır.",
+            "platforms": [
+              {
+                "channel": "linkedin",
+                "channel_name": "LinkedIn Gönderisi",
+                "transformed_content": "Değişen pazar dinamiklerine uyum sağlamak adına stratejik bir hizalanma süreci değerlendirilmektedir. Detaylar netleşince paylaşacağız.",
+                "actual": {
+                  "sim": 34.86,
+                  "topic_preserved": false,
+                  "info_loss": true,
+                  "info_loss_rate": 100.0,
+                  "has_cta": false,
+                  "cta_strength": "0/25",
+                  "sentiment": "POS",
+                  "intensity": 0.9226,
+                  "ambiguity": "Yüksek",
+                  "ambiguity_score": 0.9898
+                },
+                "expected": {
+                  "info_loss": true,
+                  "topic_preserved": false,
+                  "sim_max": 55.0,
+                  "has_cta": false,
+                  "ambiguity_min": "Orta"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_max",
+                      "expected": "<=55.0",
+                      "actual": 34.86,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_min",
+                      "expected": ">=Orta",
+                      "actual": "Yüksek",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 5,
+                  "total": 5,
+                  "accuracy": 100.0
+                }
+              },
+              {
+                "channel": "tabloid",
+                "channel_name": "Magazin / Tabloid Haberi",
+                "transformed_content": "ŞİRKET ÇÖKÜŞTE! Dev firmada panik büyüyor, yüzlerce çalışan bir günde kapı dışı ediliyor!",
+                "actual": {
+                  "sim": 23.41,
+                  "topic_preserved": false,
+                  "info_loss": true,
+                  "info_loss_rate": 100.0,
+                  "has_cta": false,
+                  "cta_strength": "0/10",
+                  "sentiment": "NEG",
+                  "intensity": 1.0,
+                  "ambiguity": "Orta",
+                  "ambiguity_score": 0.596
+                },
+                "expected": {
+                  "info_loss": true,
+                  "topic_preserved": false,
+                  "sim_max": 65.0,
+                  "has_cta": false,
+                  "ambiguity_max": "Yüksek"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_max",
+                      "expected": "<=65.0",
+                      "actual": 23.41,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_max",
+                      "expected": "<=Yüksek",
+                      "actual": "Orta",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 5,
+                  "total": 5,
+                  "accuracy": 100.0
+                }
+              }
+            ],
+            "passed": 10,
+            "total": 10,
+            "accuracy": 100.0
+          },
+          {
+            "id": "T4_siber_korunmus",
+            "name": "Siber Saldırı — Olgu Korunmuş",
+            "core": "ABC Teknoloji A.Ş. 2026 yılı Haziran ayında yaşanan siber saldırı sonucunda 50000 kullanıcının kişisel verilerinin sızdığını açıkladı.",
+            "platforms": [
+              {
+                "channel": "press_release",
+                "channel_name": "Basın Açıklaması (Press Release)",
+                "transformed_content": "Kamuoyuna duyuru: ABC Teknoloji A.Ş., 2026 Haziran ayında meydana gelen siber saldırı sonucunda 50000 kullanıcının verilerinin sızdığını kamuoyuyla paylaşmıştır.",
+                "actual": {
+                  "sim": 93.7,
+                  "topic_preserved": true,
+                  "info_loss": false,
+                  "info_loss_rate": 0.0,
+                  "has_cta": false,
+                  "cta_strength": "0/15",
+                  "sentiment": "NEG",
+                  "intensity": 0.969,
+                  "ambiguity": "Orta",
+                  "ambiguity_score": 0.3891
+                },
+                "expected": {
+                  "info_loss": false,
+                  "topic_preserved": true,
+                  "sim_min": 85.0,
+                  "has_cta": false,
+                  "ambiguity_max": "Orta"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_min",
+                      "expected": ">=85.0",
+                      "actual": 93.7,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_max",
+                      "expected": "<=Orta",
+                      "actual": "Orta",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 5,
+                  "total": 5,
+                  "accuracy": 100.0
+                }
+              },
+              {
+                "channel": "x_twitter",
+                "channel_name": "X (Twitter) Gönderisi",
+                "transformed_content": "🚨 ABC Teknoloji A.Ş. 2026 yılı Haziran ayında siber saldırı açıkladı. 50000 kullanıcının kişisel verileri sızdı. #SiberGüvenlik #VeriSızıntısı",
+                "actual": {
+                  "sim": 88.9,
+                  "topic_preserved": true,
+                  "info_loss": false,
+                  "info_loss_rate": 0.0,
+                  "has_cta": false,
+                  "cta_strength": "0/10",
+                  "sentiment": "NEG",
+                  "intensity": 1.0,
+                  "ambiguity": "Orta",
+                  "ambiguity_score": 0.5995
+                },
+                "expected": {
+                  "info_loss": false,
+                  "topic_preserved": true,
+                  "sim_min": 70.0,
+                  "has_cta": false,
+                  "ambiguity_max": "Orta"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_min",
+                      "expected": ">=70.0",
+                      "actual": 88.9,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_max",
+                      "expected": "<=Orta",
+                      "actual": "Orta",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 5,
+                  "total": 5,
+                  "accuracy": 100.0
+                }
+              }
+            ],
+            "passed": 10,
+            "total": 10,
+            "accuracy": 100.0
+          },
+          {
+            "id": "T5_siber_gizleme",
+            "name": "Siber Saldırı — Gizleme / Abartı (Yüksek Risk)",
+            "core": "ABC Teknoloji A.Ş. 2026 yılı Haziran ayında yaşanan siber saldırı sonucunda 50000 kullanıcının kişisel verilerinin sızdığını açıkladı.",
+            "platforms": [
+              {
+                "channel": "linkedin",
+                "channel_name": "LinkedIn Gönderisi",
+                "transformed_content": "2026 Haziran ayında altyapımızda gerçekleştirdiğimiz planlı optimizasyon çalışmaları kapsamında bazı sistem güncellemeleri yapılmıştır. Kullanıcı deneyimini iyileştirmeye devam ediyoruz.",
+                "actual": {
+                  "sim": 19.81,
+                  "topic_preserved": false,
+                  "info_loss": true,
+                  "info_loss_rate": 50.0,
+                  "has_cta": false,
+                  "cta_strength": "0/25",
+                  "sentiment": "POS",
+                  "intensity": 0.6078,
+                  "ambiguity": "Yüksek",
+                  "ambiguity_score": 0.9432
+                },
+                "expected": {
+                  "info_loss": true,
+                  "topic_preserved": false,
+                  "sim_max": 45.0,
+                  "has_cta": false,
+                  "ambiguity_min": "Orta"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_max",
+                      "expected": "<=45.0",
+                      "actual": 19.81,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_min",
+                      "expected": ">=Orta",
+                      "actual": "Yüksek",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 5,
+                  "total": 5,
+                  "accuracy": 100.0
+                }
+              },
+              {
+                "channel": "tabloid",
+                "channel_name": "Magazin / Tabloid Haberi",
+                "transformed_content": "BÜYÜK SKANDAL! Milyonlarca kullanıcının bilgisi karaborsaya düştü, şirket çöküşün eşiğinde!",
+                "actual": {
+                  "sim": 48.92,
+                  "topic_preserved": false,
+                  "info_loss": true,
+                  "info_loss_rate": 100.0,
+                  "has_cta": false,
+                  "cta_strength": "0/5",
+                  "sentiment": "NEG",
+                  "intensity": 1.0,
+                  "ambiguity": "Orta",
+                  "ambiguity_score": 0.5972
+                },
+                "expected": {
+                  "info_loss": true,
+                  "topic_preserved": false,
+                  "sim_max": 60.0,
+                  "has_cta": false,
+                  "ambiguity_max": "Yüksek"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_max",
+                      "expected": "<=60.0",
+                      "actual": 48.92,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_max",
+                      "expected": "<=Yüksek",
+                      "actual": "Orta",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 5,
+                  "total": 5,
+                  "accuracy": 100.0
+                }
+              },
+              {
+                "channel": "messaging_chain",
+                "channel_name": "Mesajlaşma Zinciri (WhatsApp)",
+                "transformed_content": "⚠️ ÖNEMLİ BİLGİLENDİRME\nABC Teknoloji A.Ş. 2026 yılı Haziran ayında yaşanan siber saldırı sonucunda 50000 kullanıcının kişisel verilerinin sızdığını açıkladı. Lütfen bu resmi bilgilendirme mesajını çevrenizle paylaşınız.",
+                "actual": {
+                  "sim": 92.9,
+                  "topic_preserved": true,
+                  "info_loss": false,
+                  "info_loss_rate": 0.0,
+                  "has_cta": true,
+                  "cta_strength": "5/25",
+                  "sentiment": "POS",
+                  "intensity": 0.9591,
+                  "ambiguity": "Yüksek",
+                  "ambiguity_score": 0.8002
+                },
+                "expected": {
+                  "info_loss": false,
+                  "topic_preserved": true,
+                  "sim_min": 75.0,
+                  "has_cta": true,
+                  "ambiguity_max": "Yüksek"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_min",
+                      "expected": ">=75.0",
+                      "actual": 92.9,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_max",
+                      "expected": "<=Yüksek",
+                      "actual": "Yüksek",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 5,
+                  "total": 5,
+                  "accuracy": 100.0
+                }
+              }
+            ],
+            "passed": 15,
+            "total": 15,
+            "accuracy": 100.0
+          }
+        ],
+        "summary": "Genel doğruluk %100.0. En güçlü: Okul Tatili — Düşük Risk (Olgu Korunmuş) (%100.0). En zayıf: Okul Tatili — Düşük Risk (Olgu Korunmuş) (%100.0)."
+      }
+    },
+    {
+      "id": "b4bfd043",
+      "type": "benchmark",
+      "created_at": "2026-08-01T01:37:05",
+      "overall_accuracy": 98.1,
+      "grade": "A+ Üretim Kalitesi",
+      "summary": "Genel doğruluk %98.1. En güçlü: Okul Tatili — Düşük Risk (Olgu Korunmuş) (%100.0). En zayıf: Siber Saldırı — Gizleme / Abartı (Yüksek Risk) (%93.3).",
+      "report": {
+        "timestamp": "2026-08-01T01:37:05",
+        "overall_accuracy": 98.1,
+        "total_passed": 53,
+        "total_checks": 54,
+        "grade": "A+ Üretim Kalitesi",
+        "degradation_smoke": {
+          "ok": true,
+          "has_breaking_point": false,
+          "max_deviation": 0.0153,
+          "steps": 4
+        },
+        "scenarios": [
+          {
+            "id": "T1_okul_tatili",
+            "name": "Okul Tatili — Düşük Risk (Olgu Korunmuş)",
+            "core": "Yoğun kar yağışı nedeniyle Elazığ genelinde yarın tüm okullar 1 gün süreyle tatil edilmiştir.",
+            "platforms": [
+              {
+                "channel": "press_release",
+                "channel_name": "Basın Açıklaması (Press Release)",
+                "transformed_content": "T.C. İLETİŞİM BAŞKANLIĞI\nBASIN AÇIKLAMASI\n\nYoğun kar yağışı nedeniyle Elazığ genelinde yarın tüm okullar 1 gün süreyle tatil edilmiştir. Vatandaşlarımızın yalnızca resmi kanallardan yapılan duyurulara itibar etmeleri önemle rica olunur. Kamuoyuna saygıyla duyurulur.",
+                "actual": {
+                  "sim": 90.87,
+                  "topic_preserved": true,
+                  "info_loss": false,
+                  "info_loss_rate": 0.0,
+                  "has_cta": false,
+                  "cta_strength": "0/25",
+                  "sentiment": "NEG",
+                  "intensity": 0.875,
+                  "ambiguity": "Orta",
+                  "ambiguity_score": 0.5023
+                },
+                "expected": {
+                  "info_loss": false,
+                  "topic_preserved": true,
+                  "sim_min": 75.0,
+                  "ambiguity_max": "Orta"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_min",
+                      "expected": ">=75.0",
+                      "actual": 90.87,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_max",
+                      "expected": "<=Orta",
+                      "actual": "Orta",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 4,
+                  "total": 4,
+                  "accuracy": 100.0
+                }
+              },
+              {
+                "channel": "x_twitter",
+                "channel_name": "X (Twitter) Gönderisi",
+                "transformed_content": "🚨 SON DAKİKA\n📌 ÖZET: Yoğun kar yağışı nedeniyle Elazığ genelinde yarın tüm okullar 1 gün tatil.\n📢 Resmi açıklamaları takip edin.\n#SonDakika #Elazığ",
+                "actual": {
+                  "sim": 87.82,
+                  "topic_preserved": true,
+                  "info_loss": false,
+                  "info_loss_rate": 0.0,
+                  "has_cta": true,
+                  "cta_strength": "5/5",
+                  "sentiment": "POS",
+                  "intensity": 1.0,
+                  "ambiguity": "Orta",
+                  "ambiguity_score": 0.6454
+                },
+                "expected": {
+                  "info_loss": false,
+                  "topic_preserved": true,
+                  "sim_min": 70.0,
+                  "has_cta": true,
+                  "ambiguity_max": "Orta"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_min",
+                      "expected": ">=70.0",
+                      "actual": 87.82,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_max",
+                      "expected": "<=Orta",
+                      "actual": "Orta",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 5,
+                  "total": 5,
+                  "accuracy": 100.0
+                }
+              }
+            ],
+            "passed": 9,
+            "total": 9,
+            "accuracy": 100.0
+          },
+          {
+            "id": "T2_kuculme_korunmus",
+            "name": "Küçülme Kararı — Korunmuş Resmi Metin",
+            "core": "Şirketimiz 2026 yılı üçüncü çeyreğinde yüzde 15 küçülmeye gitme kararı almıştır.",
+            "platforms": [
+              {
+                "channel": "press_release",
+                "channel_name": "Basın Açıklaması (Press Release)",
+                "transformed_content": "Kamuoyuna duyuru: Şirketimiz 2026 yılı üçüncü çeyrek stratejik planlaması kapsamında yüzde 15 küçülme kararı almıştır.",
+                "actual": {
+                  "sim": 94.05,
+                  "topic_preserved": true,
+                  "info_loss": false,
+                  "info_loss_rate": 0.0,
+                  "has_cta": false,
+                  "cta_strength": "0/10",
+                  "sentiment": "NEG",
+                  "intensity": 0.9916,
+                  "ambiguity": "Orta",
+                  "ambiguity_score": 0.3937
+                },
+                "expected": {
+                  "info_loss": false,
+                  "topic_preserved": true,
+                  "sim_min": 85.0,
+                  "has_cta": false,
+                  "ambiguity_max": "Orta"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_min",
+                      "expected": ">=85.0",
+                      "actual": 94.05,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_max",
+                      "expected": "<=Orta",
+                      "actual": "Orta",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 5,
+                  "total": 5,
+                  "accuracy": 100.0
+                }
+              },
+              {
+                "channel": "agency_news",
+                "channel_name": "Ajans Haberi (Agency News)",
+                "transformed_content": "SON DAKİKA - Şirket yönetimi 2026'nın 3. çeyreğinde %15 küçülmeye gideceğini resmi açıklamayla bildirdi.",
+                "actual": {
+                  "sim": 92.57,
+                  "topic_preserved": true,
+                  "info_loss": false,
+                  "info_loss_rate": 0.0,
+                  "has_cta": false,
+                  "cta_strength": "0/20",
+                  "sentiment": "NEG",
+                  "intensity": 0.5191,
+                  "ambiguity": "Orta",
+                  "ambiguity_score": 0.4458
+                },
+                "expected": {
+                  "info_loss": false,
+                  "topic_preserved": true,
+                  "sim_min": 80.0,
+                  "has_cta": false,
+                  "ambiguity_max": "Orta"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_min",
+                      "expected": ">=80.0",
+                      "actual": 92.57,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_max",
+                      "expected": "<=Orta",
+                      "actual": "Orta",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 5,
+                  "total": 5,
+                  "accuracy": 100.0
+                }
+              }
+            ],
+            "passed": 10,
+            "total": 10,
+            "accuracy": 100.0
+          },
+          {
+            "id": "T3_kuculme_kayip",
+            "name": "Küçülme Kararı — Bilgi Kaybı / Belirsizlik Tuzağı",
+            "core": "Şirketimiz 2026 yılı üçüncü çeyreğinde yüzde 15 küçülmeye gitme kararı almıştır.",
+            "platforms": [
+              {
+                "channel": "linkedin",
+                "channel_name": "LinkedIn Gönderisi",
+                "transformed_content": "Değişen pazar dinamiklerine uyum sağlamak adına stratejik bir hizalanma süreci değerlendirilmektedir. Detaylar netleşince paylaşacağız.",
+                "actual": {
+                  "sim": 34.86,
+                  "topic_preserved": false,
+                  "info_loss": true,
+                  "info_loss_rate": 100.0,
+                  "has_cta": false,
+                  "cta_strength": "0/25",
+                  "sentiment": "POS",
+                  "intensity": 0.9226,
+                  "ambiguity": "Yüksek",
+                  "ambiguity_score": 0.9898
+                },
+                "expected": {
+                  "info_loss": true,
+                  "topic_preserved": false,
+                  "sim_max": 55.0,
+                  "has_cta": false,
+                  "ambiguity_min": "Orta"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_max",
+                      "expected": "<=55.0",
+                      "actual": 34.86,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_min",
+                      "expected": ">=Orta",
+                      "actual": "Yüksek",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 5,
+                  "total": 5,
+                  "accuracy": 100.0
+                }
+              },
+              {
+                "channel": "tabloid",
+                "channel_name": "Magazin / Tabloid Haberi",
+                "transformed_content": "ŞİRKET ÇÖKÜŞTE! Dev firmada panik büyüyor, yüzlerce çalışan bir günde kapı dışı ediliyor!",
+                "actual": {
+                  "sim": 23.41,
+                  "topic_preserved": false,
+                  "info_loss": true,
+                  "info_loss_rate": 100.0,
+                  "has_cta": false,
+                  "cta_strength": "0/10",
+                  "sentiment": "NEG",
+                  "intensity": 1.0,
+                  "ambiguity": "Orta",
+                  "ambiguity_score": 0.596
+                },
+                "expected": {
+                  "info_loss": true,
+                  "topic_preserved": false,
+                  "sim_max": 65.0,
+                  "has_cta": false,
+                  "ambiguity_max": "Yüksek"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_max",
+                      "expected": "<=65.0",
+                      "actual": 23.41,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_max",
+                      "expected": "<=Yüksek",
+                      "actual": "Orta",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 5,
+                  "total": 5,
+                  "accuracy": 100.0
+                }
+              }
+            ],
+            "passed": 10,
+            "total": 10,
+            "accuracy": 100.0
+          },
+          {
+            "id": "T4_siber_korunmus",
+            "name": "Siber Saldırı — Olgu Korunmuş",
+            "core": "ABC Teknoloji A.Ş. 2026 yılı Haziran ayında yaşanan siber saldırı sonucunda 50000 kullanıcının kişisel verilerinin sızdığını açıkladı.",
+            "platforms": [
+              {
+                "channel": "press_release",
+                "channel_name": "Basın Açıklaması (Press Release)",
+                "transformed_content": "Kamuoyuna duyuru: ABC Teknoloji A.Ş., 2026 Haziran ayında meydana gelen siber saldırı sonucunda 50000 kullanıcının verilerinin sızdığını kamuoyuyla paylaşmıştır.",
+                "actual": {
+                  "sim": 93.7,
+                  "topic_preserved": true,
+                  "info_loss": false,
+                  "info_loss_rate": 0.0,
+                  "has_cta": false,
+                  "cta_strength": "0/15",
+                  "sentiment": "NEG",
+                  "intensity": 0.969,
+                  "ambiguity": "Orta",
+                  "ambiguity_score": 0.3891
+                },
+                "expected": {
+                  "info_loss": false,
+                  "topic_preserved": true,
+                  "sim_min": 85.0,
+                  "has_cta": false,
+                  "ambiguity_max": "Orta"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_min",
+                      "expected": ">=85.0",
+                      "actual": 93.7,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_max",
+                      "expected": "<=Orta",
+                      "actual": "Orta",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 5,
+                  "total": 5,
+                  "accuracy": 100.0
+                }
+              },
+              {
+                "channel": "x_twitter",
+                "channel_name": "X (Twitter) Gönderisi",
+                "transformed_content": "🚨 ABC Teknoloji A.Ş. 2026 yılı Haziran ayında siber saldırı açıkladı. 50000 kullanıcının kişisel verileri sızdı. #SiberGüvenlik #VeriSızıntısı",
+                "actual": {
+                  "sim": 88.9,
+                  "topic_preserved": true,
+                  "info_loss": false,
+                  "info_loss_rate": 0.0,
+                  "has_cta": false,
+                  "cta_strength": "0/10",
+                  "sentiment": "NEG",
+                  "intensity": 1.0,
+                  "ambiguity": "Orta",
+                  "ambiguity_score": 0.5995
+                },
+                "expected": {
+                  "info_loss": false,
+                  "topic_preserved": true,
+                  "sim_min": 70.0,
+                  "has_cta": false,
+                  "ambiguity_max": "Orta"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_min",
+                      "expected": ">=70.0",
+                      "actual": 88.9,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_max",
+                      "expected": "<=Orta",
+                      "actual": "Orta",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 5,
+                  "total": 5,
+                  "accuracy": 100.0
+                }
+              }
+            ],
+            "passed": 10,
+            "total": 10,
+            "accuracy": 100.0
+          },
+          {
+            "id": "T5_siber_gizleme",
+            "name": "Siber Saldırı — Gizleme / Abartı (Yüksek Risk)",
+            "core": "ABC Teknoloji A.Ş. 2026 yılı Haziran ayında yaşanan siber saldırı sonucunda 50000 kullanıcının kişisel verilerinin sızdığını açıkladı.",
+            "platforms": [
+              {
+                "channel": "linkedin",
+                "channel_name": "LinkedIn Gönderisi",
+                "transformed_content": "2026 Haziran ayında altyapımızda gerçekleştirdiğimiz planlı optimizasyon çalışmaları kapsamında bazı sistem güncellemeleri yapılmıştır. Kullanıcı deneyimini iyileştirmeye devam ediyoruz.",
+                "actual": {
+                  "sim": 19.81,
+                  "topic_preserved": false,
+                  "info_loss": true,
+                  "info_loss_rate": 50.0,
+                  "has_cta": false,
+                  "cta_strength": "0/25",
+                  "sentiment": "POS",
+                  "intensity": 0.6078,
+                  "ambiguity": "Yüksek",
+                  "ambiguity_score": 0.9432
+                },
+                "expected": {
+                  "info_loss": true,
+                  "topic_preserved": false,
+                  "sim_max": 45.0,
+                  "has_cta": false,
+                  "ambiguity_min": "Orta"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_max",
+                      "expected": "<=45.0",
+                      "actual": 19.81,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_min",
+                      "expected": ">=Orta",
+                      "actual": "Yüksek",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 5,
+                  "total": 5,
+                  "accuracy": 100.0
+                }
+              },
+              {
+                "channel": "tabloid",
+                "channel_name": "Magazin / Tabloid Haberi",
+                "transformed_content": "BÜYÜK SKANDAL! Milyonlarca kullanıcının bilgisi karaborsaya düştü, şirket çöküşün eşiğinde!",
+                "actual": {
+                  "sim": 48.92,
+                  "topic_preserved": false,
+                  "info_loss": true,
+                  "info_loss_rate": 100.0,
+                  "has_cta": false,
+                  "cta_strength": "0/5",
+                  "sentiment": "NEG",
+                  "intensity": 1.0,
+                  "ambiguity": "Orta",
+                  "ambiguity_score": 0.5972
+                },
+                "expected": {
+                  "info_loss": true,
+                  "topic_preserved": false,
+                  "sim_max": 60.0,
+                  "has_cta": false,
+                  "ambiguity_max": "Yüksek"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_max",
+                      "expected": "<=60.0",
+                      "actual": 48.92,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_max",
+                      "expected": "<=Yüksek",
+                      "actual": "Orta",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 5,
+                  "total": 5,
+                  "accuracy": 100.0
+                }
+              },
+              {
+                "channel": "messaging_chain",
+                "channel_name": "Mesajlaşma Zinciri (WhatsApp)",
+                "transformed_content": "⚠️ ÖNEMLİ BİLGİLENDİRME\nABC Teknoloji A.Ş. 2026 yılı Haziran ayında yaşanan siber saldırı sonucunda 50000 kullanıcının kişisel verilerinin sızdığını açıkladı. Lütfen bu resmi bilgilendirme mesajını çevrenizle paylaşınız.",
+                "actual": {
+                  "sim": 92.9,
+                  "topic_preserved": true,
+                  "info_loss": false,
+                  "info_loss_rate": 0.0,
+                  "has_cta": true,
+                  "cta_strength": "5/25",
+                  "sentiment": "POS",
+                  "intensity": 0.9591,
+                  "ambiguity": "Yüksek",
+                  "ambiguity_score": 0.8002
+                },
+                "expected": {
+                  "info_loss": false,
+                  "topic_preserved": true,
+                  "sim_min": 75.0,
+                  "has_cta": true,
+                  "ambiguity_max": "Orta"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_min",
+                      "expected": ">=75.0",
+                      "actual": 92.9,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_max",
+                      "expected": "<=Orta",
+                      "actual": "Yüksek",
+                      "pass": false
+                    }
+                  ],
+                  "passed": 4,
+                  "total": 5,
+                  "accuracy": 80.0
+                }
+              }
+            ],
+            "passed": 14,
+            "total": 15,
+            "accuracy": 93.3
+          }
+        ],
+        "summary": "Genel doğruluk %98.1. En güçlü: Okul Tatili — Düşük Risk (Olgu Korunmuş) (%100.0). En zayıf: Siber Saldırı — Gizleme / Abartı (Yüksek Risk) (%93.3)."
+      }
+    },
+    {
+      "id": "421daf1d",
+      "type": "benchmark",
+      "created_at": "2026-08-01T01:35:32",
+      "overall_accuracy": 96.3,
+      "grade": "A+ Üretim Kalitesi",
+      "summary": "Genel doğruluk %96.3. En güçlü: Okul Tatili — Düşük Risk (Olgu Korunmuş) (%100.0). En zayıf: Siber Saldırı — Olgu Korunmuş (%90.0).",
+      "report": {
+        "timestamp": "2026-08-01T01:35:32",
+        "overall_accuracy": 96.3,
+        "total_passed": 52,
+        "total_checks": 54,
+        "grade": "A+ Üretim Kalitesi",
+        "degradation_smoke": {
+          "ok": true,
+          "has_breaking_point": false,
+          "max_deviation": 0.0153,
+          "steps": 4
+        },
+        "scenarios": [
+          {
+            "id": "T1_okul_tatili",
+            "name": "Okul Tatili — Düşük Risk (Olgu Korunmuş)",
+            "core": "Yoğun kar yağışı nedeniyle Elazığ genelinde yarın tüm okullar 1 gün süreyle tatil edilmiştir.",
+            "platforms": [
+              {
+                "channel": "press_release",
+                "channel_name": "Basın Açıklaması (Press Release)",
+                "transformed_content": "T.C. İLETİŞİM BAŞKANLIĞI\nBASIN AÇIKLAMASI\n\nYoğun kar yağışı nedeniyle Elazığ genelinde yarın tüm okullar 1 gün süreyle tatil edilmiştir. Vatandaşlarımızın yalnızca resmi kanallardan yapılan duyurulara itibar etmeleri önemle rica olunur. Kamuoyuna saygıyla duyurulur.",
+                "actual": {
+                  "sim": 90.87,
+                  "topic_preserved": true,
+                  "info_loss": false,
+                  "info_loss_rate": 0.0,
+                  "has_cta": false,
+                  "cta_strength": "0/25",
+                  "sentiment": "NEG",
+                  "intensity": 0.875,
+                  "ambiguity": "Orta",
+                  "ambiguity_score": 0.5023
+                },
+                "expected": {
+                  "info_loss": false,
+                  "topic_preserved": true,
+                  "sim_min": 75.0,
+                  "ambiguity_max": "Orta"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_min",
+                      "expected": ">=75.0",
+                      "actual": 90.87,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_max",
+                      "expected": "<=Orta",
+                      "actual": "Orta",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 4,
+                  "total": 4,
+                  "accuracy": 100.0
+                }
+              },
+              {
+                "channel": "x_twitter",
+                "channel_name": "X (Twitter) Gönderisi",
+                "transformed_content": "🚨 SON DAKİKA\n📌 ÖZET: Yoğun kar yağışı nedeniyle Elazığ genelinde yarın tüm okullar 1 gün tatil.\n📢 Resmi açıklamaları takip edin.\n#SonDakika #Elazığ",
+                "actual": {
+                  "sim": 87.82,
+                  "topic_preserved": true,
+                  "info_loss": false,
+                  "info_loss_rate": 0.0,
+                  "has_cta": true,
+                  "cta_strength": "5/5",
+                  "sentiment": "POS",
+                  "intensity": 1.0,
+                  "ambiguity": "Orta",
+                  "ambiguity_score": 0.6454
+                },
+                "expected": {
+                  "info_loss": false,
+                  "topic_preserved": true,
+                  "sim_min": 70.0,
+                  "has_cta": true,
+                  "ambiguity_max": "Orta"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_min",
+                      "expected": ">=70.0",
+                      "actual": 87.82,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_max",
+                      "expected": "<=Orta",
+                      "actual": "Orta",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 5,
+                  "total": 5,
+                  "accuracy": 100.0
+                }
+              }
+            ],
+            "passed": 9,
+            "total": 9,
+            "accuracy": 100.0
+          },
+          {
+            "id": "T2_kuculme_korunmus",
+            "name": "Küçülme Kararı — Korunmuş Resmi Metin",
+            "core": "Şirketimiz 2026 yılı üçüncü çeyreğinde yüzde 15 küçülmeye gitme kararı almıştır.",
+            "platforms": [
+              {
+                "channel": "press_release",
+                "channel_name": "Basın Açıklaması (Press Release)",
+                "transformed_content": "Kamuoyuna duyuru: Şirketimiz 2026 yılı üçüncü çeyrek stratejik planlaması kapsamında yüzde 15 küçülme kararı almıştır.",
+                "actual": {
+                  "sim": 94.05,
+                  "topic_preserved": true,
+                  "info_loss": false,
+                  "info_loss_rate": 0.0,
+                  "has_cta": false,
+                  "cta_strength": "0/10",
+                  "sentiment": "NEG",
+                  "intensity": 0.9916,
+                  "ambiguity": "Orta",
+                  "ambiguity_score": 0.3937
+                },
+                "expected": {
+                  "info_loss": false,
+                  "topic_preserved": true,
+                  "sim_min": 85.0,
+                  "has_cta": false,
+                  "ambiguity_max": "Orta"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_min",
+                      "expected": ">=85.0",
+                      "actual": 94.05,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_max",
+                      "expected": "<=Orta",
+                      "actual": "Orta",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 5,
+                  "total": 5,
+                  "accuracy": 100.0
+                }
+              },
+              {
+                "channel": "agency_news",
+                "channel_name": "Ajans Haberi (Agency News)",
+                "transformed_content": "SON DAKİKA - Şirket yönetimi 2026'nın 3. çeyreğinde %15 küçülmeye gideceğini resmi açıklamayla bildirdi.",
+                "actual": {
+                  "sim": 92.57,
+                  "topic_preserved": true,
+                  "info_loss": false,
+                  "info_loss_rate": 0.0,
+                  "has_cta": false,
+                  "cta_strength": "0/20",
+                  "sentiment": "NEG",
+                  "intensity": 0.5191,
+                  "ambiguity": "Orta",
+                  "ambiguity_score": 0.4458
+                },
+                "expected": {
+                  "info_loss": false,
+                  "topic_preserved": true,
+                  "sim_min": 80.0,
+                  "has_cta": false,
+                  "ambiguity_max": "Orta"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_min",
+                      "expected": ">=80.0",
+                      "actual": 92.57,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_max",
+                      "expected": "<=Orta",
+                      "actual": "Orta",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 5,
+                  "total": 5,
+                  "accuracy": 100.0
+                }
+              }
+            ],
+            "passed": 10,
+            "total": 10,
+            "accuracy": 100.0
+          },
+          {
+            "id": "T3_kuculme_kayip",
+            "name": "Küçülme Kararı — Bilgi Kaybı / Belirsizlik Tuzağı",
+            "core": "Şirketimiz 2026 yılı üçüncü çeyreğinde yüzde 15 küçülmeye gitme kararı almıştır.",
+            "platforms": [
+              {
+                "channel": "linkedin",
+                "channel_name": "LinkedIn Gönderisi",
+                "transformed_content": "Değişen pazar dinamiklerine uyum sağlamak adına stratejik bir hizalanma süreci değerlendirilmektedir. Detaylar netleşince paylaşacağız.",
+                "actual": {
+                  "sim": 34.86,
+                  "topic_preserved": false,
+                  "info_loss": true,
+                  "info_loss_rate": 100.0,
+                  "has_cta": false,
+                  "cta_strength": "0/25",
+                  "sentiment": "POS",
+                  "intensity": 0.9226,
+                  "ambiguity": "Yüksek",
+                  "ambiguity_score": 0.9898
+                },
+                "expected": {
+                  "info_loss": true,
+                  "topic_preserved": false,
+                  "sim_max": 55.0,
+                  "has_cta": false,
+                  "ambiguity_min": "Orta"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_max",
+                      "expected": "<=55.0",
+                      "actual": 34.86,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_min",
+                      "expected": ">=Orta",
+                      "actual": "Yüksek",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 5,
+                  "total": 5,
+                  "accuracy": 100.0
+                }
+              },
+              {
+                "channel": "tabloid",
+                "channel_name": "Magazin / Tabloid Haberi",
+                "transformed_content": "ŞİRKET ÇÖKÜŞTE! Dev firmada panik büyüyor, yüzlerce çalışan bir günde kapı dışı ediliyor!",
+                "actual": {
+                  "sim": 23.41,
+                  "topic_preserved": false,
+                  "info_loss": true,
+                  "info_loss_rate": 100.0,
+                  "has_cta": false,
+                  "cta_strength": "0/10",
+                  "sentiment": "NEG",
+                  "intensity": 1.0,
+                  "ambiguity": "Orta",
+                  "ambiguity_score": 0.596
+                },
+                "expected": {
+                  "info_loss": true,
+                  "topic_preserved": false,
+                  "sim_max": 65.0,
+                  "has_cta": false,
+                  "ambiguity_max": "Yüksek"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_max",
+                      "expected": "<=65.0",
+                      "actual": 23.41,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_max",
+                      "expected": "<=Yüksek",
+                      "actual": "Orta",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 5,
+                  "total": 5,
+                  "accuracy": 100.0
+                }
+              }
+            ],
+            "passed": 10,
+            "total": 10,
+            "accuracy": 100.0
+          },
+          {
+            "id": "T4_siber_korunmus",
+            "name": "Siber Saldırı — Olgu Korunmuş",
+            "core": "ABC Teknoloji A.Ş. 2026 yılı Haziran ayında yaşanan siber saldırı sonucunda 50000 kullanıcının kişisel verilerinin sızdığını açıkladı.",
+            "platforms": [
+              {
+                "channel": "press_release",
+                "channel_name": "Basın Açıklaması (Press Release)",
+                "transformed_content": "Kamuoyuna duyuru: ABC Teknoloji A.Ş., 2026 Haziran ayında meydana gelen siber saldırı sonucunda 50000 kullanıcının verilerinin sızdığını kamuoyuyla paylaşmıştır.",
+                "actual": {
+                  "sim": 93.7,
+                  "topic_preserved": true,
+                  "info_loss": false,
+                  "info_loss_rate": 0.0,
+                  "has_cta": false,
+                  "cta_strength": "0/15",
+                  "sentiment": "NEG",
+                  "intensity": 0.969,
+                  "ambiguity": "Orta",
+                  "ambiguity_score": 0.3891
+                },
+                "expected": {
+                  "info_loss": false,
+                  "topic_preserved": true,
+                  "sim_min": 85.0,
+                  "has_cta": false,
+                  "ambiguity_max": "Orta"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_min",
+                      "expected": ">=85.0",
+                      "actual": 93.7,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_max",
+                      "expected": "<=Orta",
+                      "actual": "Orta",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 5,
+                  "total": 5,
+                  "accuracy": 100.0
+                }
+              },
+              {
+                "channel": "x_twitter",
+                "channel_name": "X (Twitter) Gönderisi",
+                "transformed_content": "🚨 ABC Teknoloji'de siber saldırı! 50000 kullanıcı verisi sızdı. Detaylar geliyor... #SiberGüvenlik #VeriSızıntısı",
+                "actual": {
+                  "sim": 84.97,
+                  "topic_preserved": true,
+                  "info_loss": true,
+                  "info_loss_rate": 50.0,
+                  "has_cta": false,
+                  "cta_strength": "0/10",
+                  "sentiment": "NEG",
+                  "intensity": 1.0,
+                  "ambiguity": "Orta",
+                  "ambiguity_score": 0.5704
+                },
+                "expected": {
+                  "info_loss": false,
+                  "topic_preserved": true,
+                  "sim_min": 70.0,
+                  "has_cta": false,
+                  "ambiguity_max": "Orta"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": false,
+                      "actual": true,
+                      "pass": false
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_min",
+                      "expected": ">=70.0",
+                      "actual": 84.97,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_max",
+                      "expected": "<=Orta",
+                      "actual": "Orta",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 4,
+                  "total": 5,
+                  "accuracy": 80.0
+                }
+              }
+            ],
+            "passed": 9,
+            "total": 10,
+            "accuracy": 90.0
+          },
+          {
+            "id": "T5_siber_gizleme",
+            "name": "Siber Saldırı — Gizleme / Abartı (Yüksek Risk)",
+            "core": "ABC Teknoloji A.Ş. 2026 yılı Haziran ayında yaşanan siber saldırı sonucunda 50000 kullanıcının kişisel verilerinin sızdığını açıkladı.",
+            "platforms": [
+              {
+                "channel": "linkedin",
+                "channel_name": "LinkedIn Gönderisi",
+                "transformed_content": "2026 Haziran ayında altyapımızda gerçekleştirdiğimiz planlı optimizasyon çalışmaları kapsamında bazı sistem güncellemeleri yapılmıştır. Kullanıcı deneyimini iyileştirmeye devam ediyoruz.",
+                "actual": {
+                  "sim": 19.81,
+                  "topic_preserved": false,
+                  "info_loss": true,
+                  "info_loss_rate": 50.0,
+                  "has_cta": false,
+                  "cta_strength": "0/25",
+                  "sentiment": "POS",
+                  "intensity": 0.6078,
+                  "ambiguity": "Yüksek",
+                  "ambiguity_score": 0.9432
+                },
+                "expected": {
+                  "info_loss": true,
+                  "topic_preserved": false,
+                  "sim_max": 45.0,
+                  "has_cta": false,
+                  "ambiguity_min": "Orta"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_max",
+                      "expected": "<=45.0",
+                      "actual": 19.81,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_min",
+                      "expected": ">=Orta",
+                      "actual": "Yüksek",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 5,
+                  "total": 5,
+                  "accuracy": 100.0
+                }
+              },
+              {
+                "channel": "tabloid",
+                "channel_name": "Magazin / Tabloid Haberi",
+                "transformed_content": "BÜYÜK SKANDAL! Milyonlarca kullanıcının bilgisi karaborsaya düştü, şirket çöküşün eşiğinde!",
+                "actual": {
+                  "sim": 48.92,
+                  "topic_preserved": false,
+                  "info_loss": true,
+                  "info_loss_rate": 100.0,
+                  "has_cta": false,
+                  "cta_strength": "0/5",
+                  "sentiment": "NEG",
+                  "intensity": 1.0,
+                  "ambiguity": "Orta",
+                  "ambiguity_score": 0.5972
+                },
+                "expected": {
+                  "info_loss": true,
+                  "topic_preserved": false,
+                  "sim_max": 60.0,
+                  "has_cta": false,
+                  "ambiguity_max": "Yüksek"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_max",
+                      "expected": "<=60.0",
+                      "actual": 48.92,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": false,
+                      "actual": false,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_max",
+                      "expected": "<=Yüksek",
+                      "actual": "Orta",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 5,
+                  "total": 5,
+                  "accuracy": 100.0
+                }
+              },
+              {
+                "channel": "messaging_chain",
+                "channel_name": "Mesajlaşma Zinciri (WhatsApp)",
+                "transformed_content": "⚠️ ÖNEMLİ BİLGİLENDİRME\nMerhaba,\nABC Teknoloji A.Ş. 2026 Haziran ayında yaşanan siber saldırı sonucunda 50000 kullanıcının kişisel verilerinin sızdığını açıkladı.\n📲 Lütfen yalnızca doğru bilgiye ulaşılması amacıyla bu mesajı paylaşınız.",
+                "actual": {
+                  "sim": 87.92,
+                  "topic_preserved": true,
+                  "info_loss": true,
+                  "info_loss_rate": 0.0,
+                  "has_cta": true,
+                  "cta_strength": "5/25",
+                  "sentiment": "POS",
+                  "intensity": 0.862,
+                  "ambiguity": "Orta",
+                  "ambiguity_score": 0.5243
+                },
+                "expected": {
+                  "info_loss": false,
+                  "topic_preserved": true,
+                  "sim_min": 75.0,
+                  "has_cta": true,
+                  "ambiguity_max": "Orta"
+                },
+                "score": {
+                  "checks": [
+                    {
+                      "metric": "info_loss",
+                      "expected": false,
+                      "actual": true,
+                      "pass": false
+                    },
+                    {
+                      "metric": "topic_preserved",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "sim_min",
+                      "expected": ">=75.0",
+                      "actual": 87.92,
+                      "pass": true
+                    },
+                    {
+                      "metric": "has_cta",
+                      "expected": true,
+                      "actual": true,
+                      "pass": true
+                    },
+                    {
+                      "metric": "ambiguity_max",
+                      "expected": "<=Orta",
+                      "actual": "Orta",
+                      "pass": true
+                    }
+                  ],
+                  "passed": 4,
+                  "total": 5,
+                  "accuracy": 80.0
+                }
+              }
+            ],
+            "passed": 14,
+            "total": 15,
+            "accuracy": 93.3
+          }
+        ],
+        "summary": "Genel doğruluk %96.3. En güçlü: Okul Tatili — Düşük Risk (Olgu Korunmuş) (%100.0). En zayıf: Siber Saldırı — Olgu Korunmuş (%90.0)."
+      }
+    }
+  ]
+}

@@ -106,15 +106,24 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
 
         print("🔄 [ANALİZ] NLP ve AI modelleri yükleniyor (DeBERTa NLI + MPNet Embedding)...")
 
-        # 1. NLI Modeli
-        nli_model_name = "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli"
-        self._nli_tokenizer = AutoTokenizer.from_pretrained(nli_model_name)
-        self._nli_model = AutoModelForSequenceClassification.from_pretrained(nli_model_name)
+        # 1. NLI Modeli (Colab mantığı aynı — yükleme hatası sunucuyu düşürmez)
+        try:
+            nli_model_name = "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli"
+            self._nli_tokenizer = AutoTokenizer.from_pretrained(nli_model_name)
+            self._nli_model = AutoModelForSequenceClassification.from_pretrained(nli_model_name)
+        except Exception as e:
+            print(f"⚠️ [ANALİZ UYARI] NLI modeli yüklenemedi: {e}")
+            self._nli_tokenizer = None
+            self._nli_model = None
 
         # 2. Embedding Modeli
-        self._embed_model = SentenceTransformer(
-            "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
-        )
+        try:
+            self._embed_model = SentenceTransformer(
+                "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
+            )
+        except Exception as e:
+            print(f"⚠️ [ANALİZ UYARI] Embedding modeli yüklenemedi: {e}")
+            self._embed_model = None
 
         # 3. spaCy NER (Colab uyumlu — yoksa sessizce atla, sunucu çökmez)
         try:
@@ -376,6 +385,8 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
 
     # --- NLI & COSINE BENZERLİK ---
     def _get_nli_probs(self, premise: str, hypothesis: str) -> Dict[str, float]:
+        if self._nli_model is None or self._nli_tokenizer is None:
+            return {"entailment": 0.5, "neutral": 0.5, "contradiction": 0.0}
         inputs = self._nli_tokenizer(premise, hypothesis, return_tensors="pt", truncation=True)
         with torch.no_grad():
             outputs = self._nli_model(**inputs)
@@ -384,6 +395,12 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
         return {id2label[i].lower(): p.item() for i, p in enumerate(probs)}
 
     def _get_cosine_sim(self, text_a: str, text_b: str) -> float:
+        if self._embed_model is None:
+            # Minimal karakter örtüşmesi — model yokken çökme koruması
+            a, b = set(text_a.lower().split()), set(text_b.lower().split())
+            if not a or not b:
+                return 0.0
+            return round(100.0 * len(a & b) / len(a | b), 2)
         emb1 = self._embed_model.encode(text_a, convert_to_tensor=True)
         emb2 = self._embed_model.encode(text_b, convert_to_tensor=True)
         return round(util.cos_sim(emb1, emb2).item() * 100, 2)

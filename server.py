@@ -23,6 +23,8 @@ load_dotenv()
 from src.domain.entities.message import CoreMessage
 from src.infrastructure.llm.llm_transformer_service import LLMMessageTransformerService
 from src.infrastructure.analyzers.semantic_info_loss_analyzer import SemanticAndInfoLossAnalyzer
+from src.infrastructure.database.repositories.history_repository import HistoryRepository
+from src.infrastructure.benchmark.evaluator import BenchmarkEvaluator
 from src.application.use_cases.transform_message_use_case import TransformMessageUseCase
 from src.application.use_cases.analyze_messages_use_case import AnalyzeMessagesUseCase
 
@@ -31,7 +33,10 @@ from contextlib import asynccontextmanager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("🚀 [SUNUCU] Modeller arka planda ön-yükleniyor (Pre-warming)...")
-    asyncio.create_task(asyncio.to_thread(analyzer_service._load_models))
+    try:
+        asyncio.create_task(asyncio.to_thread(analyzer_service._load_models))
+    except Exception as e:
+        print(f"⚠️ [SUNUCU] Pre-warm atlandı: {e}")
     yield
 
 app = FastAPI(title="Mecra Mesajdır API", version="1.0.0", lifespan=lifespan)
@@ -60,10 +65,16 @@ class AnalyzeRequest(BaseModel):
 # Global Singleton Servisler
 llm_service = LLMMessageTransformerService()
 analyzer_service = SemanticAndInfoLossAnalyzer()
+history_repo = HistoryRepository()
+benchmark_evaluator = BenchmarkEvaluator(analyzer=analyzer_service)
 
 @app.get("/api/health")
 def health_check():
-    return {"status": "ok", "llm_key_set": bool(os.getenv("LLM_API_KEY"))}
+    return {
+        "status": "ok",
+        "llm_key_set": bool(os.getenv("LLM_API_KEY")),
+        "models_loaded": bool(getattr(analyzer_service, "_models_loaded", False)),
+    }
 
 @app.get("/favicon.ico", include_in_schema=False)
 def favicon():
@@ -147,7 +158,7 @@ async def fast_analyze(req: AnalyzeRequest):
                 if item["id"] == degradation_chain.breaking_point_channel:
                     item["is_breaking_point"] = True
 
-        return {
+        result = {
             "core_message": req.core_message.strip(),
             "platforms": platform_data,
             "degradation_chain": {
@@ -167,11 +178,54 @@ async def fast_analyze(req: AnalyzeRequest):
                 ]
             }
         }
+
+        try:
+            history_repo.save_analysis(result)
+        except Exception as hist_err:
+            print(f"⚠️ [HISTORY] Kayıt uyarısı: {hist_err}")
+
+        return result
     except Exception as e:
         import traceback
         print("\n[FAST ANALYZE ERROR]:")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# 🧪 AŞAMA 3: ALTIN STANDART DOĞRULUK LABORATUVARI
+@app.post("/api/benchmark")
+async def run_benchmark():
+    """5 Colab altın senaryoyu çalıştırır, doğruluk yüzdesini hesaplar ve geçmişe kaydeder."""
+    try:
+        report = await benchmark_evaluator.run()
+        saved = history_repo.save_benchmark(report)
+        report["history_id"] = saved["id"]
+        return report
+    except Exception as e:
+        import traceback
+        print("\n[BENCHMARK ERROR]:")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/history")
+def list_history(limit: int = 30):
+    return {"items": history_repo.list_all(limit=limit)}
+
+
+@app.get("/api/history/{item_id}")
+def get_history_item(item_id: str):
+    item = history_repo.get(item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Kayıt bulunamadı.")
+    return item
+
+
+@app.delete("/api/history")
+def clear_history():
+    history_repo.clear()
+    return {"status": "cleared"}
+
 
 # 3. Static Files (Frontend Kurumsal Web Arayüzü)
 frontend_path = os.path.join(os.path.dirname(__file__), "frontend")
