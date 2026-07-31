@@ -61,7 +61,11 @@ class CTAAnalyzer:
         if self._nlp is None:
             return self._fallback_analyze(transformed)
 
-        doc = self._nlp(metin)
+        try:
+            doc = self._nlp(metin)
+        except Exception as e:
+            print(f"⚠️ [CTA ANALİZ UYARI] Stanza analiz hatası: {e}. Fallback regex kullanılıyor.")
+            return self._fallback_analyze(transformed)
 
         toplam_fiil = 0
         toplam_siddet = 0

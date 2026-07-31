@@ -4,6 +4,7 @@ Anlamsal Benzerlik ve Bilgi Kaybı Analizörü (Infrastructure Katmanı)
 NLP, NLI ve SentenceTransformers modelleri ile bilgi kaybı ve anlamsal benzerlik ölçümü.
 """
 
+import asyncio
 import re
 import torch
 from typing import List, Tuple, Optional, Dict
@@ -68,6 +69,21 @@ ULTRA_SAYI_PATTERN = (
     rf"|\b{YAZIYLA_SAYI}(?:\s*{CARPANLAR})?(?:\s*{PARA_BIRIMLERI})?\b"
 )
 
+# Colab: Türkçe yazıyla sayı ve çarpan normalizasyonu
+TR_BIRLER = {
+    "bir": 1, "iki": 2, "üç": 3, "uc": 3, "dört": 4, "dort": 4, "beş": 5, "bes": 5,
+    "altı": 6, "alti": 6, "yedi": 7, "sekiz": 8, "dokuz": 9,
+}
+TR_ONLAR = {
+    "on": 10, "yirmi": 20, "otuz": 30, "kırk": 40, "kirk": 40, "elli": 50,
+    "altmış": 60, "altmis": 60, "yetmiş": 70, "yetmis": 70, "seksen": 80, "doksan": 90,
+}
+TR_SCALE = {"yüz": 100, "yuz": 100, "bin": 1000, "milyon": 10**6, "milyar": 10**9, "trilyon": 10**12}
+CARPAN_CARPANLARI = {
+    "trilyon": 10**12, "milyar": 10**9, "milyon": 10**6, "bin": 1000,
+    "mln": 10**6, "mlr": 10**9, "mn": 10**6, "bn": 1000, "b": 1000, "m": 10**6, "k": 1000,
+}
+
 
 class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
     """Anlamsal Benzerlik, Bilgi Kaybı, CTA, Duygu, Belirsizlik ve Bozulma Zinciri Servisi."""
@@ -100,16 +116,16 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
             "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
         )
 
-        # 3. spaCy NER (İsteğe bağlı/fallback'li)
+        # 3. spaCy NER (Colab uyumlu — yoksa sessizce atla, sunucu çökmez)
         try:
             import spacy
             try:
                 self._nlp_ner = spacy.load("xx_ent_wiki_sm")
             except OSError:
-                from spacy.cli import download as spacy_download
-                spacy_download("xx_ent_wiki_sm")
-                self._nlp_ner = spacy.load("xx_ent_wiki_sm")
-        except Exception:
+                print("⚠️ [ANALİZ UYARI] xx_ent_wiki_sm bulunamadı. NER devre dışı (sayısal olgu analizi aktif).")
+                self._nlp_ner = None
+        except Exception as e:
+            print(f"⚠️ [ANALİZ UYARI] NER modeli yüklenemedi: {e}")
             self._nlp_ner = None
 
         self._models_loaded = True
@@ -194,20 +210,127 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
                 if ent.label_ in ("ORG", "PER", "PERSON", "LOC", "MISC")]
 
     @staticmethod
-    def _normalize_fact(label: str, val: str):
+    def _digits_to_float(raw: str) -> Optional[float]:
+        """'50000' / '50.000' / '50,5' gibi ham rakam dizisini float'a çevirir."""
+        s = raw.strip()
+        if not s:
+            return None
+        parts = re.split(r"[.,]", s)
+        if len(parts) == 1:
+            try:
+                return float(parts[0])
+            except ValueError:
+                return None
+        last = parts[-1]
+        if len(last) == 3 and all(len(p) <= 3 for p in parts[:-1]):
+            try:
+                return float("".join(parts))
+            except ValueError:
+                return None
+        if len(last) in (1, 2):
+            try:
+                return float(f"{''.join(parts[:-1])}.{last}")
+            except ValueError:
+                return None
+        try:
+            return float("".join(parts))
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _words_to_number(text: str) -> Optional[float]:
+        """'elli bin', 'yüz milyon' gibi yazıyla yazılmış sayıları rakama çevirir."""
+        tokens = re.findall(r"[a-zA-ZçğıöşüÇĞİÖŞÜ]+", text.lower())
+        total = 0.0
+        current = 0.0
+        found_any = False
+        for tok in tokens:
+            if tok in TR_BIRLER:
+                current += TR_BIRLER[tok]
+                found_any = True
+            elif tok in TR_ONLAR:
+                current += TR_ONLAR[tok]
+                found_any = True
+            elif tok in TR_SCALE:
+                found_any = True
+                scale_val = TR_SCALE[tok]
+                current = (current if current != 0 else 1) * scale_val
+                if scale_val >= 1000:
+                    total += current
+                    current = 0
+        total += current
+        return total if found_any else None
+
+    @classmethod
+    def _normalize_number_value(cls, val: str) -> Optional[float]:
         v = val.lower().strip()
+        v = re.sub(rf"\b{PARA_BIRIMLERI}\b", "", v, flags=re.IGNORECASE)
+        v = re.sub(r"[₺$€£¥]", "", v).strip()
+
+        multiplier = 1.0
+        for word, mult in sorted(CARPAN_CARPANLARI.items(), key=lambda x: -len(x[0])):
+            pat = rf"\b{re.escape(word)}\b\s*$"
+            if re.search(pat, v):
+                multiplier = mult
+                v = re.sub(pat, "", v).strip()
+                break
+
+        digit_match = re.search(r"[\d.,]+", v)
+        if digit_match and any(ch.isdigit() for ch in digit_match.group()):
+            base = cls._digits_to_float(digit_match.group())
+            if base is not None:
+                return base * multiplier
+
+        word_val = cls._words_to_number(v)
+        if word_val is not None:
+            return word_val * multiplier
+        return None
+
+    @staticmethod
+    def _normalize_percentage_value(val: str):
+        nums = re.findall(r"\d+(?:[.,]\d+)?", val)
+        nums = tuple(sorted(float(n.replace(",", ".")) for n in nums))
+        return nums if nums else None
+
+    @staticmethod
+    def _normalize_period_value(val: str) -> str:
+        v = val.lower()
+        m = re.search(r"[1-4]", v)
+        if m:
+            return f"Ç{m.group()}"
+        ordmap = {
+            "birinci": 1, "ilk": 1, "ikinci": 2,
+            "üçüncü": 3, "ucuncu": 3, "dördüncü": 4, "dorduncu": 4,
+        }
+        for w, num in ordmap.items():
+            if w in v:
+                return f"Ç{num}"
+        if "yarı" in v or "yari" in v or "ay" in v:
+            if "ilk" in v or "birinci" in v:
+                return "H1"
+            if "ikinci" in v:
+                return "H2"
+        if "son" in v:
+            return "SON_ÇEYREK"
+        return v.strip()
+
+    @staticmethod
+    def _normalize_year_value(val: str) -> str:
+        digits = re.findall(r"\d{4}", val)
+        return digits[0] if digits else val.strip()
+
+    @classmethod
+    def _normalize_fact(cls, label: str, val: str):
         if label == "YÜZDE":
-            nums = re.findall(r"\d+(?:[.,]\d+)?", val)
-            return tuple(sorted(float(n.replace(",", ".")) for n in nums)) if nums else None
+            return cls._normalize_percentage_value(val)
         if label == "DÖNEM":
-            m = re.search(r"[1-4]", v)
-            if m:
-                return f"Ç{m.group()}"
-            return v
+            return cls._normalize_period_value(val)
         if label in ("YIL", "YIL_ARALIĞI"):
-            digits = re.findall(r"\d{4}", val)
-            return digits[0] if digits else v
-        return v
+            return cls._normalize_year_value(val)
+        if label == "SAYI_FINANS":
+            n = cls._normalize_number_value(val)
+            return round(n, 2) if n is not None else None
+        return val.lower().strip()
 
     def _dynamic_fact_consistency(self, core_text: str, target_text: str) -> Tuple[Optional[float], int, List[dict]]:
         nt_facts = self._extract_numeric_temporal_facts(core_text)
@@ -266,8 +389,7 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
         return round(util.cos_sim(emb1, emb2).item() * 100, 2)
 
     # --- ANA ANALİZ METHODLARI ---
-    async def analyze_pair(self, core: CoreMessage, transformed: TransformedMessage) -> CombinedAnalysisResult:
-        """Çekirdek mesaj ile tek bir mecradan gelen mesajı kıyaslar."""
+    def _sync_analyze_pair(self, core: CoreMessage, transformed: TransformedMessage) -> CombinedAnalysisResult:
         self._load_models()
 
         core_text = core.content
@@ -328,14 +450,16 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
             ambiguity=ambiguity_res,
         )
 
+    async def analyze_pair(self, core: CoreMessage, transformed: TransformedMessage) -> CombinedAnalysisResult:
+        """Çekirdek mesaj ile tek bir mecradan gelen mesajı kıyaslar (Non-blocking)."""
+        return await asyncio.to_thread(self._sync_analyze_pair, core, transformed)
+
     async def analyze_all(
         self, core: CoreMessage, transformed_list: List[TransformedMessage]
     ) -> Tuple[List[CombinedAnalysisResult], DegradationChainResult]:
-        """Tüm dönüştürülmüş mecralar için analizleri ve Bozulma Zinciri analizini yapar."""
-        results = []
-        for transformed in transformed_list:
-            res = await self.analyze_pair(core, transformed)
-            results.append(res)
+        """Tüm dönüştürülmüş mecralar için analizleri paralel olarak yüksek hızda yapar."""
+        tasks = [self.analyze_pair(core, transformed) for transformed in transformed_list]
+        results = list(await asyncio.gather(*tasks))
 
         # Bozulma Zinciri (Degradation Chain) Analizi
         degradation_result = self._degradation_analyzer.analyze_chain(core, transformed_list)

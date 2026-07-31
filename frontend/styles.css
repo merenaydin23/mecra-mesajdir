@@ -163,7 +163,35 @@ body {
 /* ==========================================
    Print / PDF Styles
    ========================================== */
-@media print {
+/* Mobil navigasyon */
+@media (max-width: 1023px) {
+  .mobile-nav-tabs {
+    display: flex;
+    overflow-x: auto;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.95);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+  }
+  .mobile-nav-tabs .nav-tab-btn {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}
+
+/* Kart metin kaydırma çubuğu */
+.platform-message-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #00A3A6 #f1f5f9;
+}
+.platform-message-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+.platform-message-scroll::-webkit-scrollbar-thumb {
+  background: #00A3A6;
+  border-radius: 4px;
+}
+
   body {
     background-color: #ffffff;
   }

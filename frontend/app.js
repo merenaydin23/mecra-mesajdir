@@ -102,10 +102,11 @@ function initTabNavigation() {
       appState.activeTab = targetTab;
 
       navButtons.forEach(b => {
-        b.classList.remove('border-[#00A3A6]', 'text-[#00A3A6]', 'font-semibold');
-        b.classList.add('border-transparent', 'text-slate-600');
+        b.classList.remove('bg-white', 'text-[#00A3A6]', 'font-bold', 'shadow-xs', 'border-slate-200/80');
+        b.classList.add('text-slate-600', 'font-semibold', 'border-transparent');
       });
-      btn.classList.add('border-[#00A3A6]', 'text-[#00A3A6]', 'font-semibold');
+      btn.classList.add('bg-white', 'text-[#00A3A6]', 'font-bold', 'shadow-xs', 'border-slate-200/80');
+      btn.classList.remove('border-transparent', 'text-slate-600', 'font-semibold');
 
       tabPages.forEach(page => {
         page.classList.add('hidden');
@@ -137,6 +138,7 @@ function initEventListeners() {
         return;
       }
       appState.coreMessage = text;
+      saveToHistory(text);
       runTransformationAndAnalysis(text);
     });
   }
@@ -169,64 +171,102 @@ function loadDefaultData() {
 }
 
 // Çevirme ve Analiz İşlemini Çalıştır (Simülasyon / API)
+// ⚡ 2 AŞAMALI ANLIK DÖNÜŞTÜRÜCÜ & ANALİZ (SÜPER HIZLI)
 async function runTransformationAndAnalysis(coreText) {
   appState.isLoading = true;
   renderSkeletonLoaders();
-  showToast('Yapay zekâ 8 mecrada çevirme ve analiz sürecini başlattı...', 'info');
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 6000);
+  showToast('⚡ Yapay zekâ 8 mecraya dönüştürme işlemini başlattı...', 'info');
 
   try {
-    let data;
-    try {
-      const response = await fetch('/api/transform', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: coreText, author: "Kamu Görevlisi" }),
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      if (response.ok) {
-        const apiData = await response.json();
-        const transformedObj = {};
-        const analysisArr = [];
-        apiData.platforms.forEach(p => {
-          transformedObj[p.id] = p.transformed_content;
-          analysisArr.push({
-            channel: p.id,
-            sim: Math.round((p.semantic_similarity || 85) * 10) / 10,
-            loss: p.info_loss ? 'Evet' : 'Hayır',
-            cta: p.cta_strength || 'Evet',
-            sentiment: p.sentiment || 'POS',
-            ambiguity: p.ambiguity || 'Düşük'
-          });
+    // 🚀 AŞAMA 1: Sadece Dönüştürme (2 saniyede ekran dolar)
+    const transformRes = await fetch('/api/transform', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: coreText, author: "Kamu Görevlisi" })
+    });
+
+    if (transformRes.ok) {
+      const transformData = await transformRes.json();
+      const transformedObj = {};
+      const initialAnalysisArr = [];
+      const platformPayload = [];
+
+      transformData.platforms.forEach(p => {
+        transformedObj[p.id] = p.transformed_content;
+        platformPayload.push({ id: p.id, transformed_content: p.transformed_content });
+        initialAnalysisArr.push({
+          channel: p.id,
+          sim: 90.0,
+          loss: 'Analiz Ediliyor...',
+          cta: 'Analiz Ediliyor...',
+          sentiment: 'POS',
+          ambiguity: 'Düşük'
         });
-        data = {
-          transformedMessages: transformedObj,
-          analysisResults: analysisArr,
-          degradationChain: apiData.degradation_chain ? apiData.degradation_chain.steps : []
-        };
-      } else {
-        data = generateMockTransformation(coreText);
+      });
+
+      appState.transformedMessages = transformedObj;
+      appState.analysisResults = initialAnalysisArr;
+      appState.isLoading = false;
+
+      // 💥 ANINDA EKRANA BASTIR! Kullanıcı metinleri 2 saniyede görür!
+      renderPlatformCards();
+      showToast('✅ 8 mecra dönüşümü tamamlandı! NLP Metrikleri analiz ediliyor...', 'success');
+
+      // 📊 AŞAMA 2: Arka Planda NLP Analizi (Metrikler ve Grafikler)
+      try {
+        const analyzeRes = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ core_message: coreText, platforms: platformPayload, author: "Kamu Görevlisi" })
+        });
+
+        if (analyzeRes.ok) {
+          const analyzeData = await analyzeRes.json();
+          const finalAnalysisArr = [];
+          analyzeData.platforms.forEach(p => {
+            const ctaScore = p.cta_strength || '0/0';
+            const hasCta = ctaScore !== '0/0' && !ctaScore.startsWith('0/');
+            finalAnalysisArr.push({
+              channel: p.id,
+              sim: Math.round((p.semantic_similarity || 85) * 10) / 10,
+              loss: p.info_loss ? 'Evet' : 'Hayır',
+              cta: hasCta ? 'Evet' : 'Hayır',
+              ctaStrength: ctaScore,
+              sentiment: p.sentiment || 'POS',
+              ambiguity: p.ambiguity || 'Düşük'
+            });
+          });
+
+          appState.analysisResults = finalAnalysisArr;
+          appState.degradationChain = analyzeData.degradation_chain ? analyzeData.degradation_chain.steps : [];
+
+          // Kartları ve tabloları kesin NLP verileriyle güncelle
+          renderPlatformCards();
+          renderSummaryTable();
+          showToast('🎯 Tüm NLP Analizleri ve Deformasyon Zinciri tamamlandı!', 'success');
+        }
+      } catch (err) {
+        console.warn('Aşama 2 Analiz Uyarısı:', err);
       }
-    } catch (e) {
-      clearTimeout(timeoutId);
-      data = generateMockTransformation(coreText);
+
+    } else {
+      const mockData = generateMockTransformation(coreText);
+      appState.transformedMessages = mockData.transformedMessages;
+      appState.analysisResults = mockData.analysisResults;
+      appState.degradationChain = mockData.degradationChain;
+      appState.isLoading = false;
+      renderPlatformCards();
+      renderSummaryTable();
     }
-
-    appState.transformedMessages = data.transformedMessages;
-    appState.analysisResults = data.analysisResults;
-    appState.degradationChain = data.degradationChain;
+  } catch (err) {
+    const mockData = generateMockTransformation(coreText);
+    appState.transformedMessages = mockData.transformedMessages;
+    appState.analysisResults = mockData.analysisResults;
+    appState.degradationChain = mockData.degradationChain;
     appState.isLoading = false;
-
     renderPlatformCards();
     renderSummaryTable();
-    showToast('Tüm mecralarda dönüşüm ve analizler tamamlandı! ✅', 'success');
-  } catch (err) {
-    appState.isLoading = false;
-    renderPlatformCards();
-    showToast('Dönüşüm ve analizler tamamlandı! ✅', 'success');
+    showToast('Varsayılan simülasyon moduna geçildi. ✅', 'info');
   }
 }
 
@@ -252,6 +292,26 @@ function renderSkeletonLoaders() {
     `;
     grid.insertAdjacentHTML('beforeend', cardHtml);
   }
+}
+
+function copyPlatformMessage(platformId, event) {
+  if (event) event.stopPropagation();
+  const text = appState.transformedMessages[platformId] || "";
+  if (!text) {
+    showToast('Kopyalanacak metin bulunamadı.', 'warning');
+    return;
+  }
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('Mecra mesajı panoya kopyalandı! 📋', 'success');
+  }).catch(err => {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    showToast('Mecra mesajı panoya kopyalandı! 📋', 'success');
+  });
 }
 
 // Platform Kartlarını Ekrana Çizme (Sayfa 1)
@@ -294,7 +354,7 @@ function renderPlatformCards() {
             </span>
           </div>
 
-          <div class="text-[14px] text-slate-700 leading-relaxed font-normal whitespace-pre-line bg-slate-50/70 p-4 rounded-xl border border-slate-200/60 font-sans space-y-2">
+          <div class="text-[14px] text-slate-700 leading-relaxed font-normal whitespace-pre-line bg-slate-50/70 p-4 rounded-xl border border-slate-200/60 font-sans space-y-2 max-h-48 overflow-y-auto platform-message-scroll">
             ${escapeHtml(message)}
           </div>
         </div>
@@ -304,9 +364,15 @@ function renderPlatformCards() {
             <span>Duygu: <strong class="${analysis.sentiment === 'POS' ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}">${analysis.sentiment}</strong></span>
             <span>Belirsizlik: <strong class="text-slate-700 font-bold">${analysis.ambiguity}</strong></span>
           </div>
-          <div class="text-[#00A3A6] group-hover:text-[#007D80] font-bold flex items-center space-x-1.5 bg-teal-50 px-2.5 py-1 rounded-md">
-            <span>Büyüt & Detay</span>
-            <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
+          <div class="flex items-center space-x-2">
+            <button onclick="copyPlatformMessage('${platform.id}', event)" title="Doğrudan Kopyala" class="px-3 py-1.5 rounded-lg bg-teal-50 hover:bg-[#00A3A6] text-[#00A3A6] hover:text-white font-bold transition-all duration-200 flex items-center space-x-1.5 border border-teal-200/80 shadow-2xs">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              <span>Kopyala</span>
+            </button>
+            <div class="text-slate-600 group-hover:text-[#00A3A6] font-bold flex items-center space-x-1 bg-slate-100 px-2.5 py-1.5 rounded-lg transition-colors">
+              <span>Büyüt</span>
+              <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
+            </div>
           </div>
         </div>
       </div>
@@ -551,201 +617,7 @@ function renderSummaryTable() {
       <td class="py-3 px-4 font-semibold text-slate-800">${pName}</td>
       <td class="py-3 px-4 text-emerald-600 font-bold">%${item.sim}</td>
       <td class="py-3 px-4">${item.loss === 'Evet' ? '<span class="text-rose-600 font-semibold">Evet ⚠️</span>' : '<span class="text-emerald-600">Hayır</span>'}</td>
-      <td class="py-3 px-4">${item.cta === 'Evet' ? '<span class="text-emerald-600 font-semibold">Evet ✅</span>' : 'Hayır'}</td>
-      <td class="py-3 px-4 font-medium">${item.sentiment}</td>
-      <td class="py-3 px-4"><span class="px-2 py-0.5 rounded text-xs bg-slate-100 text-slate-700">${item.ambiguity}</span></td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-// Toast Bildirim Sistemi
-function showToast(message, type = 'info') {
-  let container = document.getElementById('toast-container');
-  if (!container) {
-    container = document.createElement('div');
-    container.id = 'toast-container';
-    document.body.appendChild(container);
-  }
-
-  const toast = document.createElement('div');
-  toast.className = 'toast';
-
-  const iconMap = {
-    info: 'info',
-    success: 'check-circle',
-    warning: 'alert-triangle',
-    error: 'x-circle'
-  };
-
-  toast.innerHTML = `
-    <i data-lucide="${iconMap[type] || 'info'}" class="w-5 h-5 text-[#00A3A6]"></i>
-    <span class="text-sm font-medium">${escapeHtml(message)}</span>
-  `;
-
-  container.appendChild(toast);
-  initLucideIcons();
-
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateY(100%)';
-  // Analiz sekmesine geç
-  const analyticsNavBtn = document.querySelector('[data-tab="analytics"]');
-  if (analyticsNavBtn) analyticsNavBtn.click();
-}
-
-// GitHub Stili Diff Viewer (Kelime Karşılaştırma)
-function renderDiffViewer() {
-  const container = document.getElementById('diff-viewer-content');
-  if (!container) return;
-
-  const coreWords = appState.coreMessage.split(/\s+/);
-  const targetText = appState.transformedMessages[appState.selectedPlatformForDiff] || "";
-  const targetWords = targetText.split(/\s+/);
-
-  const diffResult = computeWordDiff(coreWords, targetWords);
-
-  let html = `<div class="font-mono text-sm leading-relaxed space-y-1">`;
-  html += `<div class="p-3 bg-slate-900 text-slate-100 rounded-md mb-4 text-xs font-semibold flex items-center justify-between">`;
-  html += `<span>Orijinal Çekirdek Mesaj vs. ${getPlatformDisplayName(appState.selectedPlatformForDiff)}</span>`;
-  html += `<span class="text-emerald-400">GitHub Diff Engine</span></div>`;
-
-  html += `<div class="p-4 bg-white border border-slate-200 rounded-lg shadow-inner">`;
-  diffResult.forEach(item => {
-    if (item.type === 'removed') {
-      html += `<span class="diff-deleted">${escapeHtml(item.word)}</span> `;
-    } else if (item.type === 'added') {
-      html += `<span class="diff-inserted">${escapeHtml(item.word)}</span> `;
-    } else {
-      html += `<span class="text-slate-700">${escapeHtml(item.word)}</span> `;
-    }
-  });
-  html += `</div></div>`;
-
-  container.innerHTML = html;
-}
-
-// Kelime Fark Algoritması (LCS tabanlı diff)
-function computeWordDiff(arr1, arr2) {
-  const diff = [];
-  let i = 0, j = 0;
-  while (i < arr1.length || j < arr2.length) {
-    if (i < arr1.length && j < arr2.length && arr1[i] === arr2[j]) {
-      diff.push({ type: 'same', word: arr1[i] });
-      i++; j++;
-    } else if (j < arr2.length && (!arr1.includes(arr2[j], i) || arr2.indexOf(arr1[i], j) > j)) {
-      diff.push({ type: 'added', word: arr2[j] });
-      j++;
-    } else if (i < arr1.length) {
-      diff.push({ type: 'removed', word: arr1[i] });
-      i++;
-    }
-  }
-  return diff;
-}
-
-// Radar Chart Yönetimi
-let radarChartInstance = null;
-function renderAnalyticsCharts() {
-  renderRadarChart();
-  renderBarChart();
-}
-
-function renderRadarChart() {
-  const ctx = document.getElementById('radarChart');
-  if (!ctx) return;
-
-  if (radarChartInstance) {
-    radarChartInstance.destroy();
-  }
-
-  const platforms = PLATFORMS_CONFIG.map(p => p.name.split(' ')[0]);
-  const simScores = appState.analysisResults.map(a => a.sim);
-
-  radarChartInstance = new Chart(ctx, {
-    type: 'radar',
-    data: {
-      labels: platforms,
-      datasets: [{
-        label: 'Anlamsal Korunum (%)',
-        data: simScores,
-        backgroundColor: 'rgba(0, 163, 166, 0.2)',
-        borderColor: '#00A3A6',
-        pointBackgroundColor: '#00A3A6',
-        pointBorderColor: '#fff',
-        pointHoverBackgroundColor: '#fff',
-        pointHoverBorderColor: '#00A3A6'
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        r: {
-          angleLines: { color: 'rgba(0,0,0,0.05)' },
-          suggestedMin: 50,
-          suggestedMax: 100
-        }
-      }
-    }
-  });
-}
-
-// Bar Chart Yönetimi
-let barChartInstance = null;
-function renderBarChart() {
-  const ctx = document.getElementById('barChart');
-  if (!ctx) return;
-
-  if (barChartInstance) {
-    barChartInstance.destroy();
-  }
-
-  const platforms = PLATFORMS_CONFIG.map(p => p.name);
-  const scores = appState.analysisResults.map(a => a.sim);
-
-  barChartInstance = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: platforms,
-      datasets: [{
-        label: 'Bilgi Korunumu (%)',
-        data: scores,
-        backgroundColor: '#00A3A6',
-        borderRadius: 6,
-        hoverBackgroundColor: '#007D80'
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: { beginAtZero: true, max: 100, ticks: { callback: v => '%' + v } },
-        x: { ticks: { font: { size: 10 } } }
-      },
-      plugins: {
-        legend: { display: false }
-      }
-    }
-  });
-}
-
-// Özet Karşılaştırma Tablosunu Çizme
-function renderSummaryTable() {
-  const tbody = document.getElementById('summary-table-body');
-  if (!tbody) return;
-
-  tbody.innerHTML = '';
-
-  appState.analysisResults.forEach(item => {
-    const pName = getPlatformDisplayName(item.channel);
-    const tr = document.createElement('tr');
-    tr.className = "hover:bg-slate-50 transition-colors border-b border-slate-100 text-sm";
-    tr.innerHTML = `
-      <td class="py-3 px-4 font-semibold text-slate-800">${pName}</td>
-      <td class="py-3 px-4 text-emerald-600 font-bold">%${item.sim}</td>
-      <td class="py-3 px-4">${item.loss === 'Evet' ? '<span class="text-rose-600 font-semibold">Evet ⚠️</span>' : '<span class="text-emerald-600">Hayır</span>'}</td>
-      <td class="py-3 px-4">${item.cta === 'Evet' ? '<span class="text-emerald-600 font-semibold">Evet ✅</span>' : 'Hayır'}</td>
+      <td class="py-3 px-4">${item.cta === 'Evet' ? `<span class="text-emerald-600 font-semibold">Evet ✅</span> <span class="text-slate-400 text-xs">(${item.ctaStrength || '-'})</span>` : 'Hayır'}</td>
       <td class="py-3 px-4 font-medium">${item.sentiment}</td>
       <td class="py-3 px-4"><span class="px-2 py-0.5 rounded text-xs bg-slate-100 text-slate-700">${item.ambiguity}</span></td>
     `;
@@ -845,4 +717,116 @@ function generateMockTransformation(core) {
       { step: 5, channel: 'tabloid', sim: 0.728, dev: 0.272, cum: 0.728, is_bp: true }
     ]
   };
+}
+
+// ============================================================
+// GEÇMİŞ YÖNETİMİ (History Management)
+// ============================================================
+
+const HISTORY_KEY = 'mecra_search_history';
+
+function getHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveToHistory(text) {
+  if (!text || text.trim().length < 5) return;
+  const history = getHistory().filter(h => h.text !== text.trim());
+  history.unshift({ text: text.trim(), date: new Date().toLocaleDateString('tr-TR') });
+  if (history.length > 20) history.pop();
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  renderQuickHistoryChips();
+}
+
+function renderQuickHistoryChips() {
+  const container = document.getElementById('quick-history-chips');
+  if (!container) return;
+
+  const history = getHistory().slice(0, 5);
+  if (history.length === 0) {
+    container.innerHTML = '<span class="text-xs text-slate-400 italic">Henüz arama geçmişi yok.</span>';
+    return;
+  }
+
+  container.innerHTML = history.map(item => `
+    <button
+      onclick="loadFromHistory('${escapeHtml(item.text).replace(/'/g, "\\'")}')"
+      class="px-3 py-1 rounded-full text-xs font-medium bg-white border border-slate-200 text-slate-600 hover:border-[#00A3A6] hover:text-[#00A3A6] transition-colors shadow-sm truncate max-w-xs"
+      title="${escapeHtml(item.text)}"
+    >
+      ${escapeHtml(item.text.length > 40 ? item.text.substring(0, 40) + '...' : item.text)}
+    </button>
+  `).join('');
+}
+
+function loadFromHistory(text) {
+  const input = document.getElementById('core-message-input');
+  if (input) {
+    input.value = text;
+    appState.coreMessage = text;
+  }
+  closeHistoryModal();
+}
+
+function openHistoryModal() {
+  const modal = document.getElementById('search-history-modal');
+  const container = document.getElementById('history-modal-container');
+  if (!modal || !container) return;
+
+  // Listeyi doldur
+  const listEl = document.getElementById('history-modal-list');
+  if (listEl) {
+    const history = getHistory();
+    if (history.length === 0) {
+      listEl.innerHTML = '<p class="text-slate-400 text-sm text-center py-6">Geçmiş bulunamadı.</p>';
+    } else {
+      listEl.innerHTML = history.map((item, i) => `
+        <div class="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-slate-100 transition-colors group">
+          <div class="flex-1 min-w-0 cursor-pointer" onclick="loadFromHistory('${escapeHtml(item.text).replace(/'/g, "\\'")}')">
+            <p class="text-sm font-medium text-slate-800 truncate">${escapeHtml(item.text)}</p>
+            <p class="text-xs text-slate-400 mt-0.5">${item.date}</p>
+          </div>
+          <button onclick="deleteHistoryItem(${i})" class="ml-3 p-1.5 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors opacity-0 group-hover:opacity-100">
+            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      `).join('');
+      initLucideIcons();
+    }
+  }
+
+  modal.classList.remove('hidden');
+  setTimeout(() => {
+    container.classList.remove('scale-95', 'opacity-0');
+    container.classList.add('scale-100', 'opacity-100');
+  }, 10);
+}
+
+function closeHistoryModal() {
+  const modal = document.getElementById('search-history-modal');
+  const container = document.getElementById('history-modal-container');
+  if (!modal || !container) return;
+
+  container.classList.remove('scale-100', 'opacity-100');
+  container.classList.add('scale-95', 'opacity-0');
+  setTimeout(() => modal.classList.add('hidden'), 200);
+}
+
+function deleteHistoryItem(index) {
+  const history = getHistory();
+  history.splice(index, 1);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  openHistoryModal();
+  renderQuickHistoryChips();
+}
+
+function clearAllHistory() {
+  localStorage.removeItem(HISTORY_KEY);
+  renderQuickHistoryChips();
+  closeHistoryModal();
+  showToast('Tüm arama geçmişi temizlendi.', 'info');
 }
