@@ -93,6 +93,11 @@ CREATE TABLE dbo.DegradationScores
     SequentialSimilarity DECIMAL(5,4) NOT NULL,
     CumulativeSimilarity DECIMAL(5,4) NOT NULL,
     IsBreakingPoint      BIT          NOT NULL DEFAULT 0,
+    InfoLossOccurred     BIT          NOT NULL DEFAULT 0,
+    InfoLossRate         DECIMAL(5,4) NOT NULL DEFAULT 0,
+    HasCTA               BIT          NOT NULL DEFAULT 0,
+    SentimentLabel       NVARCHAR(50) NULL,
+    AmbiguityLevel       NVARCHAR(50) NULL,
 
     CONSTRAINT PK_DegradationScores PRIMARY KEY CLUSTERED (ScoreID),
 
@@ -104,7 +109,10 @@ CREATE TABLE dbo.DegradationScores
         CHECK (SequentialSimilarity >= 0 AND SequentialSimilarity <= 1),
 
     CONSTRAINT CK_DegradationScores_CumSim
-        CHECK (CumulativeSimilarity >= 0 AND CumulativeSimilarity <= 1)
+        CHECK (CumulativeSimilarity >= 0 AND CumulativeSimilarity <= 1),
+
+    CONSTRAINT CK_DegradationScores_InfoLossRate
+        CHECK (InfoLossRate >= 0 AND InfoLossRate <= 1)
 );
 GO
 

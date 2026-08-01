@@ -114,6 +114,7 @@ async def main():
         core_message=core_message,
         transformed_messages=transformed_messages,
         degradation_result=degradation_chain,
+        analysis_results=analysis_results,
         campaign_title="Canlı LLM & Çoklu Mecra Analiz Testi",
     )
     if campaign_id > 0:

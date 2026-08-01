@@ -6,7 +6,7 @@ MSSQL Veritabanı Repository İmplementasyonu (Infrastructure Katmanı)
 
 from typing import List, Optional
 from src.domain.entities.message import CoreMessage, TransformedMessage
-from src.domain.entities.analysis_result import DegradationChainResult
+from src.domain.entities.analysis_result import DegradationChainResult, CombinedAnalysisResult
 from src.domain.entities.channel import CHANNEL_NAMES
 from src.infrastructure.database.connection import db_manager
 
@@ -22,6 +22,7 @@ class MSSQLRepository:
         core_message: CoreMessage,
         transformed_messages: List[TransformedMessage],
         degradation_result: Optional[DegradationChainResult] = None,
+        analysis_results: Optional[List[CombinedAnalysisResult]] = None,
         campaign_title: str = "Mecra Mesajdır Analiz Kampanyası",
     ) -> int:
         """
@@ -83,8 +84,8 @@ class MSSQLRepository:
             # Core mesaj skor kaydı
             cursor.execute(
                 """
-                INSERT INTO dbo.DegradationScores (MessageID, SequentialSimilarity, CumulativeSimilarity, IsBreakingPoint)
-                VALUES (?, 1.0000, 1.0000, 0);
+                INSERT INTO dbo.DegradationScores (MessageID, SequentialSimilarity, CumulativeSimilarity, IsBreakingPoint, InfoLossOccurred, InfoLossRate, HasCTA, SentimentLabel, AmbiguityLevel)
+                VALUES (?, 1.0000, 1.0000, 0, 0, 0.0000, 0, NULL, NULL);
                 """,
                 (core_msg_id,),
             )
@@ -116,12 +117,25 @@ class MSSQLRepository:
                 cum_sim = deg_step.cumulative_similarity if deg_step else 1.0
                 is_bp = 1 if (deg_step and deg_step.is_breaking_point) else 0
 
+                res_step = None
+                if analysis_results:
+                    for res in analysis_results:
+                        if res.channel == msg.channel:
+                            res_step = res
+                            break
+
+                info_loss_occ = 1 if (res_step and res_step.info_loss.info_loss_occurred) else 0
+                info_loss_rate = res_step.info_loss.info_loss_rate if res_step else 0.0
+                has_cta = 1 if (res_step and res_step.cta.has_cta) else 0
+                sentiment_label = res_step.sentiment.label if res_step else None
+                ambiguity_level = res_step.ambiguity.level if res_step else None
+
                 cursor.execute(
                     """
-                    INSERT INTO dbo.DegradationScores (MessageID, SequentialSimilarity, CumulativeSimilarity, IsBreakingPoint)
-                    VALUES (?, ?, ?, ?);
+                    INSERT INTO dbo.DegradationScores (MessageID, SequentialSimilarity, CumulativeSimilarity, IsBreakingPoint, InfoLossOccurred, InfoLossRate, HasCTA, SentimentLabel, AmbiguityLevel)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
                     """,
-                    (msg_db_id, seq_sim, cum_sim, is_bp),
+                    (msg_db_id, seq_sim, cum_sim, is_bp, info_loss_occ, info_loss_rate, has_cta, sentiment_label, ambiguity_level),
                 )
 
             conn.commit()
