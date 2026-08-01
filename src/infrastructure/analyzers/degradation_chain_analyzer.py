@@ -7,12 +7,11 @@ Mecralar arası ardışık ve kümülatif anlam kayıplarını (deformasyon) ve 
 import numpy as np
 from typing import List
 from sklearn.metrics.pairwise import cosine_similarity
-from sentence_transformers import SentenceTransformer
-
 from src.domain.entities.channel import CHANNEL_NAMES
 from src.domain.entities.message import CoreMessage, TransformedMessage
 from src.domain.entities.analysis_result import DegradationStep, DegradationChainResult, CombinedAnalysisResult
 from src.infrastructure.config.settings import settings
+from src.infrastructure.analyzers.model_manager import model_manager
 
 
 MODEL_ADI = "paraphrase-multilingual-MiniLM-L12-v2"
@@ -23,21 +22,11 @@ class DegradationChainAnalyzer:
 
     def __init__(self):
         self._model = None
-        self._is_loaded = False
 
     def _load_model(self):
-        """SentenceTransformer modelini lazy loading ile yükler."""
-        if self._is_loaded:
-            return
-
-        print(f"🔄 [BOZULMA ZİNCİRİ] SentenceTransformer modeli ({MODEL_ADI}) yükleniyor...")
-        try:
-            self._model = SentenceTransformer(MODEL_ADI)
-            self._is_loaded = True
-            print("✅ [BOZULMA ZİNCİRİ] Deformasyon analiz modeli hazır!")
-        except Exception as e:
-            print(f"⚠️ [BOZULMA ZİNCİRİ UYARI] Model yüklenirken hata oluştu: {e}")
-            self._is_loaded = True
+        """SentenceTransformer modelini manager üzerinden yükler."""
+        if self._model is None:
+            self._model = model_manager.get_sentence_model()
 
     def analyze_chain(
         self, 

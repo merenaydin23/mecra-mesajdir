@@ -7,11 +7,10 @@ Sentence Transformers Embeddings ve Prototipler İle Belirsizlik Analizi.
 import re
 import numpy as np
 from typing import List, Tuple
-from sentence_transformers import SentenceTransformer
-
 from src.domain.entities.message import TransformedMessage
 from src.domain.entities.analysis_result import AmbiguityResult
 from src.infrastructure.config.settings import settings
+from src.infrastructure.analyzers.model_manager import model_manager
 
 
 MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
@@ -47,23 +46,17 @@ class AmbiguityAnalyzer:
         self._model = None
         self._belirsiz_vektorler = None
         self._kesin_vektorler = None
-        self._is_loaded = False
+
 
     def _load_model(self):
-        """SentenceTransformer ve prototip vektörlerini lazy loading ile yükler."""
-        if self._is_loaded:
+        """SentenceTransformer modelini manager üzerinden yükler."""
+        if self._model is not None:
             return
 
-        print(f"🔄 [BELİRSİZLİK ANALİZİ] SentenceTransformer modeli ({MODEL_NAME}) yükleniyor...")
-        try:
-            self._model = SentenceTransformer(MODEL_NAME)
+        self._model = model_manager.get_sentence_model()
+        if self._model is not None and self._belirsiz_vektorler is None:
             self._belirsiz_vektorler = self._model.encode(BELIRSIZ_PROTOTIPLER, normalize_embeddings=True)
             self._kesin_vektorler = self._model.encode(KESIN_PROTOTIPLER, normalize_embeddings=True)
-            self._is_loaded = True
-            print("✅ [BELİRSİZLİK ANALİZİ] Prototip vektörleri ve model başarıyla hazırlandı!")
-        except Exception as e:
-            print(f"⚠️ [BELİRSİZLİK ANALİZİ UYARI] Model yüklenirken hata oluştu: {e}")
-            self._is_loaded = True
 
     @staticmethod
     def _split_sentences(text: str) -> List[str]:

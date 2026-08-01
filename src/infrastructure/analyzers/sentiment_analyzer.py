@@ -8,11 +8,10 @@ Emoji ve Noktalama Yoğunluk Faktörleri ile Hesaplama.
 import re
 import torch
 import emoji
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
-
 from src.domain.entities.message import TransformedMessage
 from src.domain.entities.analysis_result import SentimentResult
 from src.infrastructure.config.settings import settings
+from src.infrastructure.analyzers.model_manager import model_manager
 
 
 MODEL_NAME = "savasy/bert-base-turkish-sentiment-cased"
@@ -26,25 +25,17 @@ class SentimentAnalyzer:
         self._tokenizer = None
         self._model = None
         self._device = None
-        self._is_loaded = False
 
     def _load_model(self):
-        """BERT duygu modelini lazy loading ile yükler."""
-        if self._is_loaded:
+        """BERT duygu modelini manager üzerinden yükler."""
+        if self._model is not None:
             return
 
-        print("🔄 [DUYGU ANALİZİ] BERT Türkçe Duygu Modeli (savasy) yükleniyor...")
-        try:
-            self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            self._tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-            self._model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME)
-            self._model.to(self._device)
-            self._model.eval()
-            self._is_loaded = True
-            print(f"✅ [DUYGU ANALİZİ] BERT Modeli {self._device.type.upper()} üzerinde başarıyla yüklendi!")
-        except Exception as e:
-            print(f"⚠️ [DUYGU ANALİZİ UYARI] BERT modeli yüklenirken hata oluştu: {e}")
-            self._is_loaded = True
+        tokenizer, model, device = model_manager.get_sentiment_model()
+        if model is not None:
+            self._tokenizer = tokenizer
+            self._model = model
+            self._device = device
 
     def analyze(self, transformed: TransformedMessage) -> SentimentResult:
         """Dönüştürülmüş mecra mesajının duygu ve yoğunluk analizini gerçekleştirir."""
