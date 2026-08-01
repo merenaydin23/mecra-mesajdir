@@ -97,6 +97,36 @@ class BenchmarkEvaluator:
                 "pass": ok,
             })
 
+        # 8. Sentiment
+        if "sentiment" in expected:
+            ok = actual["sentiment"] == expected["sentiment"]
+            checks.append({
+                "metric": "sentiment",
+                "expected": expected["sentiment"],
+                "actual": actual["sentiment"],
+                "pass": ok,
+            })
+
+        # 9. Intensity Min
+        if "intensity_min" in expected:
+            ok = actual["intensity"] >= expected["intensity_min"]
+            checks.append({
+                "metric": "intensity_min",
+                "expected": f">={expected['intensity_min']}",
+                "actual": actual["intensity"],
+                "pass": ok,
+            })
+
+        # 10. Intensity Max
+        if "intensity_max" in expected:
+            ok = actual["intensity"] <= expected["intensity_max"]
+            checks.append({
+                "metric": "intensity_max",
+                "expected": f"<={expected['intensity_max']}",
+                "actual": actual["intensity"],
+                "pass": ok,
+            })
+
         passed = sum(1 for c in checks if c["pass"])
         total = len(checks) or 1
         return {
