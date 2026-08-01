@@ -10,6 +10,15 @@ from pydantic import BaseModel, Field
 from src.domain.entities.channel import ChannelType
 
 
+from enum import Enum
+
+class InfoLossReason(str, Enum):
+    MISSING_FACT = "missing_fact"
+    CONTRADICTION = "contradiction"
+    SOFTENING = "softening"
+    NONE = "none"
+
+
 class InfoLossResult(BaseModel):
     """2.1 Bilgi Kaybı Analiz Sonucu."""
 
@@ -18,6 +27,8 @@ class InfoLossResult(BaseModel):
     info_loss_rate: Optional[float] = Field(None, description="Bilgi kaybı oranı (%)")
     checked_facts_count: int = Field(0, description="Kontrol edilen olgu sayısı")
     fact_details: List[dict] = Field(default_factory=list, description="Detaylı olgu eşleşmeleri")
+    loss_reason: InfoLossReason = Field(InfoLossReason.NONE, description="Bilgi kaybı ana nedeni")
+    model_unavailable: bool = Field(False, description="Model yüklenemediği için fallback mi yapıldı?")
 
 
 class SemanticSimilarityResult(BaseModel):

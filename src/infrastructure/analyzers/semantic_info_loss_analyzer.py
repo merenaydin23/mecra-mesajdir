@@ -21,6 +21,7 @@ from src.domain.entities.analysis_result import (
     AmbiguityResult,
     DegradationChainResult,
     CombinedAnalysisResult,
+    InfoLossReason,
 )
 from src.domain.services.analyzer_service_interface import AnalyzerServiceInterface
 from src.infrastructure.analyzers.cta_analyzer import CTAAnalyzer
@@ -195,6 +196,27 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
                     results.append(("SAYI_FINANS", val, m.span()))
         return results
 
+    def _extract_claims(self, text: str, occupied_spans: List[Tuple[int, int]]) -> List[Tuple[str, str, Tuple[int, int]]]:
+        results = []
+        for m in re.finditer(r"\b(iddia\s+edildi|öne\s+sürüldü|söylenti|belirtiliyor|kaydediliyor)\b", text, re.IGNORECASE):
+            if not self._is_overlapping(m.span(), occupied_spans):
+                results.append(("CLAIM", m.group().strip(), m.span()))
+        return results
+
+    def _extract_attributions(self, text: str, occupied_spans: List[Tuple[int, int]]) -> List[Tuple[str, str, Tuple[int, int]]]:
+        results = []
+        for m in re.finditer(r"\b(açıkladı|belirtti|vurguladı|duyurdu|ifade\s+etti|söyledi)\b", text, re.IGNORECASE):
+            if not self._is_overlapping(m.span(), occupied_spans):
+                results.append(("ATTRIBUTION", m.group().strip(), m.span()))
+        return results
+
+    def _extract_statistics(self, text: str, occupied_spans: List[Tuple[int, int]]) -> List[Tuple[str, str, Tuple[int, int]]]:
+        results = []
+        for m in re.finditer(r"\b\d+\s+(kişi|adet|hasta|öğrenci|kullanıcı|vatandaş)\b", text, re.IGNORECASE):
+            if not self._is_overlapping(m.span(), occupied_spans):
+                results.append(("STATISTIC", m.group().strip(), m.span()))
+        return results
+
     def _extract_numeric_temporal_facts(self, text: str) -> List[Tuple[str, str]]:
         facts = []
         occupied_spans = []
@@ -203,6 +225,9 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
             self._extract_periods,
             self._extract_years,
             self._extract_financial_numbers,
+            self._extract_claims,
+            self._extract_attributions,
+            self._extract_statistics,
         ]
         for step_func in pipeline_steps:
             step_results = step_func(text, occupied_spans)
@@ -456,14 +481,32 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
         fwd_nli = self._get_nli_probs(core_text, target_text)
         fwd_contra = fwd_nli.get("contradiction", 0.0)
 
+        model_unavailable = (self._nli_model is None) and (self._embed_model is None)
+        loss_reason = InfoLossReason.NONE
+
         if fact_score is not None:
             info_loss_rate = round(100.0 - fact_score, 1)
-            info_loss_occurred = (fact_score <= FACT_HIDE_THRESHOLD) or (fwd_contra >= NOTABLE_THRESHOLD)
+            
+            if fwd_contra >= NOTABLE_THRESHOLD:
+                info_loss_occurred = True
+                loss_reason = InfoLossReason.CONTRADICTION
+            elif fact_score <= FACT_HIDE_THRESHOLD:
+                info_loss_occurred = True
+                loss_reason = InfoLossReason.MISSING_FACT
+            else:
+                info_loss_occurred = False
         else:
             info_loss_rate = None
-            info_loss_occurred = fwd_contra >= NOTABLE_THRESHOLD
+            if fwd_contra >= NOTABLE_THRESHOLD:
+                info_loss_occurred = True
+                loss_reason = InfoLossReason.CONTRADICTION
+            else:
+                info_loss_occurred = False
 
         topic_preserved = cos_sim >= TOPIC_RELATION_THRESHOLD
+
+        if not info_loss_occurred and not topic_preserved and not model_unavailable:
+            loss_reason = InfoLossReason.SOFTENING
 
         return CombinedAnalysisResult(
             channel=transformed.channel,
@@ -476,6 +519,8 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
                 info_loss_rate=info_loss_rate,
                 checked_facts_count=fact_total,
                 fact_details=fact_details,
+                loss_reason=loss_reason,
+                model_unavailable=model_unavailable,
             ),
             semantic_similarity=SemanticSimilarityResult(
                 channel=transformed.channel,
