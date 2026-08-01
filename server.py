@@ -171,7 +171,7 @@ async def fast_analyze(req: AnalyzeRequest):
 
         if degradation_chain.has_breaking_point:
             for item in platform_data:
-                if item["id"] == degradation_chain.breaking_point_channel:
+                if item["name"] == degradation_chain.breaking_point_channel:
                     item["is_breaking_point"] = True
 
         result = {
