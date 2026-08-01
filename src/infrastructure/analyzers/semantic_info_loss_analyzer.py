@@ -29,6 +29,40 @@ from src.infrastructure.analyzers.sentiment_analyzer import SentimentAnalyzer
 from src.infrastructure.analyzers.ambiguity_analyzer import AmbiguityAnalyzer
 from src.infrastructure.analyzers.degradation_chain_analyzer import DegradationChainAnalyzer
 
+_GLOBAL_SPACY_NER = None
+_SPACY_INITIALIZED = False
+
+def _get_spacy_ner():
+    global _GLOBAL_SPACY_NER, _SPACY_INITIALIZED
+    if _SPACY_INITIALIZED:
+        return _GLOBAL_SPACY_NER
+
+    _SPACY_INITIALIZED = True
+    try:
+        import spacy
+    except ImportError as e:
+        print(f"⚠️ [ANALİZ UYARI] spacy kütüphanesi yüklü değil: {e}")
+        return None
+
+    try:
+        print("🔄 [ANALİZ] spaCy xx_ent_wiki_sm modeli yükleniyor (Singleton)...")
+        _GLOBAL_SPACY_NER = spacy.load("xx_ent_wiki_sm")
+    except OSError:
+        print("⚠️ [ANALİZ UYARI] xx_ent_wiki_sm bulunamadı, otomatik indirme deneniyor...")
+        try:
+            from spacy.cli import download
+            download("xx_ent_wiki_sm")
+            print("✅ [ANALİZ] xx_ent_wiki_sm başarıyla indirildi, yükleniyor...")
+            _GLOBAL_SPACY_NER = spacy.load("xx_ent_wiki_sm")
+        except BaseException as e:
+            print(f"⚠️ [ANALİZ UYARI] Model indirilemedi veya yüklenemedi. NER devre dışı. Hata: {e}")
+            _GLOBAL_SPACY_NER = None
+    except BaseException as e:
+        print(f"⚠️ [ANALİZ UYARI] NER modeli yüklenirken beklenmeyen hata: {e}")
+        _GLOBAL_SPACY_NER = None
+
+    return _GLOBAL_SPACY_NER
+
 
 # ==========================================
 # EŞİK DEĞERLERİ VE SABİTLER
@@ -126,17 +160,8 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
             print(f"⚠️ [ANALİZ UYARI] Embedding modeli yüklenemedi: {e}")
             self._embed_model = None
 
-        # 3. spaCy NER (Colab uyumlu — yoksa sessizce atla, sunucu çökmez)
-        try:
-            import spacy
-            try:
-                self._nlp_ner = spacy.load("xx_ent_wiki_sm")
-            except OSError:
-                print("⚠️ [ANALİZ UYARI] xx_ent_wiki_sm bulunamadı. NER devre dışı (sayısal olgu analizi aktif).")
-                self._nlp_ner = None
-        except Exception as e:
-            print(f"⚠️ [ANALİZ UYARI] NER modeli yüklenemedi: {e}")
-            self._nlp_ner = None
+        # 3. spaCy NER (Singleton ve Fallback)
+        self._nlp_ner = _get_spacy_ner()
 
         self._models_loaded = True
         print("✅ [ANALİZ] Tüm analiz modelleri hazır!")
