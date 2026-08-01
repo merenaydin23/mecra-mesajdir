@@ -25,4 +25,8 @@ class Settings:
     BP_ESIK: float = float(os.getenv("BP_ESIK", "0.15"))
     TIE_YUZDE_ESIK: float = float(os.getenv("TIE_YUZDE_ESIK", "0.05"))
 
+    # Duygu Analizi Konfigürasyonu
+    EMOJI_WEIGHT: float = float(os.getenv("EMOJI_WEIGHT", "0.08"))
+    PUNCT_WEIGHT: float = float(os.getenv("PUNCT_WEIGHT", "0.05"))
+
 settings = Settings()

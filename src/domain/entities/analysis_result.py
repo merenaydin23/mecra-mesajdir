@@ -63,6 +63,8 @@ class SentimentResult(BaseModel):
     emoji_count: int = Field(0, description="Metindeki emoji sayısı")
     punct_count: int = Field(0, description="Vurgulu noktalama (!, ?) sayısı")
     intensity_score: float = Field(..., description="Duygu yoğunluğu skoru (0.0 - 1.0)")
+    model_unavailable: bool = Field(False, description="Model yüklenemediği için fallback mi yapıldı?")
+    is_truncated: bool = Field(False, description="Metin 512 token sınırını aştığı için kırpıldı mı?")
 
 
 class AmbiguityResult(BaseModel):

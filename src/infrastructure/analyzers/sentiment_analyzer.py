@@ -12,12 +12,11 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 from src.domain.entities.message import TransformedMessage
 from src.domain.entities.analysis_result import SentimentResult
+from src.infrastructure.config.settings import settings
 
 
 MODEL_NAME = "savasy/bert-base-turkish-sentiment-cased"
 PUNCT_PATTERN = re.compile(r"[!?]")
-EMOJI_WEIGHT = 0.08
-PUNCT_WEIGHT = 0.05
 
 
 class SentimentAnalyzer:
@@ -68,6 +67,11 @@ class SentimentAnalyzer:
             padding=True,
             max_length=512,
         ).to(self._device)
+        
+        is_truncated = False
+        if inputs.input_ids.shape[1] == 512:
+            print("⚠️ [DUYGU ANALİZİ UYARI] Metin çok uzun olduğu için 512 tokenda kesildi.")
+            is_truncated = True
 
         with torch.no_grad():
             outputs = self._model(**inputs)
@@ -98,7 +102,7 @@ class SentimentAnalyzer:
 
         # 3. Yoğunluk Skoru Hesaplama
         base_score = pos_prob if label == "POS" else neg_prob
-        raw_score = base_score + (emoji_count * EMOJI_WEIGHT) + (punct_count * PUNCT_WEIGHT)
+        raw_score = base_score + (emoji_count * settings.EMOJI_WEIGHT) + (punct_count * settings.PUNCT_WEIGHT)
         intensity_score = max(0.0, min(1.0, raw_score))
 
         return SentimentResult(
@@ -109,6 +113,8 @@ class SentimentAnalyzer:
             emoji_count=emoji_count,
             punct_count=punct_count,
             intensity_score=round(intensity_score, 4),
+            model_unavailable=False,
+            is_truncated=is_truncated
         )
 
     def _fallback_analyze(self, transformed: TransformedMessage) -> SentimentResult:
@@ -124,4 +130,6 @@ class SentimentAnalyzer:
             emoji_count=emoji_count,
             punct_count=punct_count,
             intensity_score=0.5,
+            model_unavailable=True,
+            is_truncated=False
         )
