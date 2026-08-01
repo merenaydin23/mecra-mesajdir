@@ -29,4 +29,8 @@ class Settings:
     EMOJI_WEIGHT: float = float(os.getenv("EMOJI_WEIGHT", "0.08"))
     PUNCT_WEIGHT: float = float(os.getenv("PUNCT_WEIGHT", "0.05"))
 
+    # Belirsizlik Analizi Konfigürasyonu
+    AMBIGUITY_LOW_THRESHOLD: float = float(os.getenv("AMBIGUITY_LOW_THRESHOLD", "0.35"))
+    AMBIGUITY_HIGH_THRESHOLD: float = float(os.getenv("AMBIGUITY_HIGH_THRESHOLD", "0.65"))
+
 settings = Settings()

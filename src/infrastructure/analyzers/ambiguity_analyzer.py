@@ -11,6 +11,7 @@ from sentence_transformers import SentenceTransformer
 
 from src.domain.entities.message import TransformedMessage
 from src.domain.entities.analysis_result import AmbiguityResult
+from src.infrastructure.config.settings import settings
 
 
 MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
@@ -108,12 +109,15 @@ class AmbiguityAnalyzer:
                 "kesin_benzerlik": round(sim_k, 4),
             })
 
-        belirsizlik_skoru = max(d["belirsizlik_skoru"] for d in detay)
+        # Use mean instead of max to prevent a single ambiguous sentence from completely dominating long official letters.
+        # But we also want to catch ambiguity if there's a highly ambiguous sentence, so we can use a weighted average 
+        # or simply average if the text has multiple sentences. Mean is more stable.
+        belirsizlik_skoru = sum(d["belirsizlik_skoru"] for d in detay) / len(detay)
         en_belirsiz_cumle = max(detay, key=lambda d: d["belirsizlik_skoru"])["cumle"]
 
-        if belirsizlik_skoru < 0.35:
+        if belirsizlik_skoru < settings.AMBIGUITY_LOW_THRESHOLD:
             seviye = "Düşük"
-        elif belirsizlik_skoru < 0.65:
+        elif belirsizlik_skoru < settings.AMBIGUITY_HIGH_THRESHOLD:
             seviye = "Orta"
         else:
             seviye = "Yüksek"

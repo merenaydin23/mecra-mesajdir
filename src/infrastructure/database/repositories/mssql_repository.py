@@ -84,8 +84,8 @@ class MSSQLRepository:
             # Core mesaj skor kaydı
             cursor.execute(
                 """
-                INSERT INTO dbo.DegradationScores (MessageID, SequentialSimilarity, CumulativeSimilarity, IsBreakingPoint, InfoLossOccurred, InfoLossRate, HasCTA, SentimentLabel, AmbiguityLevel)
-                VALUES (?, 1.0000, 1.0000, 0, 0, 0.0000, 0, NULL, NULL);
+                INSERT INTO dbo.DegradationScores (MessageID, SequentialSimilarity, CumulativeSimilarity, IsBreakingPoint, InfoLossOccurred, InfoLossRate, HasCTA, SentimentLabel, AmbiguityLevel, AmbiguityScore)
+                VALUES (?, 1.0000, 1.0000, 0, 0, 0.0000, 0, NULL, NULL, NULL);
                 """,
                 (core_msg_id,),
             )
@@ -129,13 +129,14 @@ class MSSQLRepository:
                 has_cta = 1 if (res_step and res_step.cta.has_cta) else 0
                 sentiment_label = res_step.sentiment.label if res_step else None
                 ambiguity_level = res_step.ambiguity.level if res_step else None
+                ambiguity_score = res_step.ambiguity.ambiguity_score if res_step else None
 
                 cursor.execute(
                     """
-                    INSERT INTO dbo.DegradationScores (MessageID, SequentialSimilarity, CumulativeSimilarity, IsBreakingPoint, InfoLossOccurred, InfoLossRate, HasCTA, SentimentLabel, AmbiguityLevel)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+                    INSERT INTO dbo.DegradationScores (MessageID, SequentialSimilarity, CumulativeSimilarity, IsBreakingPoint, InfoLossOccurred, InfoLossRate, HasCTA, SentimentLabel, AmbiguityLevel, AmbiguityScore)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
                     """,
-                    (msg_db_id, seq_sim, cum_sim, is_bp, info_loss_occ, info_loss_rate, has_cta, sentiment_label, ambiguity_level),
+                    (msg_db_id, seq_sim, cum_sim, is_bp, info_loss_occ, info_loss_rate, has_cta, sentiment_label, ambiguity_level, ambiguity_score),
                 )
 
             conn.commit()

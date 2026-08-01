@@ -98,6 +98,7 @@ CREATE TABLE dbo.DegradationScores
     HasCTA               BIT          NOT NULL DEFAULT 0,
     SentimentLabel       NVARCHAR(50) NULL,
     AmbiguityLevel       NVARCHAR(50) NULL,
+    AmbiguityScore       DECIMAL(5,4) NULL,
 
     CONSTRAINT PK_DegradationScores PRIMARY KEY CLUSTERED (ScoreID),
 
