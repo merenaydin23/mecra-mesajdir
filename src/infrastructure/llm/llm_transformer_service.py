@@ -114,7 +114,7 @@ class LLMMessageTransformerService(LLMServiceInterface):
             ChannelType.PRESS_RELEASE: ["T.C. İLETİŞİM BAŞKANLIĞI", "BASIN AÇIKLAMASI", "BAŞLIK"],
             ChannelType.OFFICIAL_LETTER: ["T.C.", "DAĞITIM YERLERİNE", "RESMİ YAZI", "Sayı :", "Konu :"],
             ChannelType.AGENCY_NEWS: ["FLAŞ", "[FLAŞ", "ANKARA -", "HABER:"],
-            ChannelType.X_TWITTER: ["🚨", "📌", "🚨 KANCA", "📌 ÖZET", "#"],
+            ChannelType.X_TWITTER: ["🚨", "📌", "🚨 KANCA", "📌 ÖZET"],
             ChannelType.LINKEDIN: ["AÇILIŞ", "STRATEJİK DEĞERLENDİRME", "ÖNE ÇIKAN NOKTALAR"],
             ChannelType.VERTICAL_VIDEO: ["🎬", "🎬 VİDEO", "🎥 SAHNE", "📌 [0-3"],
             ChannelType.MESSAGING_CHAIN: ["⚠️", "⚠️ ÖNEMLİ DUYURU", "Merhaba,"],
@@ -182,7 +182,9 @@ class LLMMessageTransformerService(LLMServiceInterface):
         elif channel == ChannelType.MESSAGING_CHAIN:
             return f"🚨 ACİL DUYURU:\n{content}\nLütfen tüm gruplara iletin!"
         elif channel == ChannelType.OFFICIAL_LETTER:
-            return f"T.C. İLETİŞİM BAŞKANLIĞI\n\nKonu: Okul Tatil Bilgilendirmesi\n\n{content}\n\nGereğini bilgilerinize arz/rica ederim.\n\nAhmet Yılmaz\nŞube Müdürü"
+            # Extract first 5 words of content as subject to be somewhat dynamic, or just use a generic subject
+            subject = "Resmi Bilgilendirme"
+            return f"T.C. İLETİŞİM BAŞKANLIĞI\n\nKonu: {subject}\n\n{content}\n\nGereğini bilgilerinize arz/rica ederim.\n\nAhmet Yılmaz\nŞube Müdürü"
         return content
 
 
