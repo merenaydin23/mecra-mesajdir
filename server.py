@@ -70,10 +70,19 @@ benchmark_evaluator = BenchmarkEvaluator(analyzer=analyzer_service)
 
 @app.get("/api/health")
 def health_check():
+    nli_status = "loaded" if getattr(analyzer_service, "_nli_model", None) else "error_loading" if getattr(analyzer_service, "_models_loaded", False) else "not_loaded"
+    embed_status = "loaded" if getattr(analyzer_service, "_embed_model", None) else "error_loading" if getattr(analyzer_service, "_models_loaded", False) else "not_loaded"
+    ner_status = "loaded" if getattr(analyzer_service, "_nlp_ner", None) else "error_loading" if getattr(analyzer_service, "_models_loaded", False) else "not_loaded"
+    
     return {
         "status": "ok",
         "llm_key_set": bool(os.getenv("LLM_API_KEY")),
         "models_loaded": bool(getattr(analyzer_service, "_models_loaded", False)),
+        "nlp_models": {
+            "nli_model": nli_status,
+            "embed_model": embed_status,
+            "ner_model": ner_status
+        }
     }
 
 @app.get("/favicon.ico", include_in_schema=False)
@@ -166,7 +175,8 @@ async def fast_analyze(req: AnalyzeRequest):
                 "clarity_score": res.ambiguity.clarity_score,
                 "most_ambiguous_sentence": res.ambiguity.most_ambiguous_sentence,
                 "ambiguity_sentences": res.ambiguity.sentence_details,
-                "is_breaking_point": False
+                "is_breaking_point": False,
+                "degraded_mode": res.info_loss.model_unavailable
             })
 
         if degradation_chain.has_breaking_point:
@@ -174,8 +184,10 @@ async def fast_analyze(req: AnalyzeRequest):
                 if item["name"] == degradation_chain.breaking_point_channel:
                     item["is_breaking_point"] = True
 
+        any_degraded = any(res.info_loss.model_unavailable for res in analysis_results)
         result = {
             "core_message": req.core_message.strip(),
+            "degraded_mode": any_degraded,
             "platforms": platform_data,
             "degradation_chain": {
                 "has_breaking_point": degradation_chain.has_breaking_point,
