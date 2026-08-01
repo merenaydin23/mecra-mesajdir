@@ -21,5 +21,8 @@ class Settings:
     MSSQL_DATABASE: str = os.getenv("MSSQL_DATABASE", "Mecra_Mesajdır_DB")
     MSSQL_TRUSTED_CONNECTION: str = os.getenv("MSSQL_TRUSTED_CONNECTION", "yes")
 
+    # MMD (Breaking Point) Konfigürasyonu
+    BP_ESIK: float = float(os.getenv("BP_ESIK", "0.15"))
+    TIE_YUZDE_ESIK: float = float(os.getenv("TIE_YUZDE_ESIK", "0.05"))
 
 settings = Settings()

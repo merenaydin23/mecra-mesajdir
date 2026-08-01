@@ -12,11 +12,10 @@ from sentence_transformers import SentenceTransformer
 from src.domain.entities.channel import CHANNEL_NAMES
 from src.domain.entities.message import CoreMessage, TransformedMessage
 from src.domain.entities.analysis_result import DegradationStep, DegradationChainResult, CombinedAnalysisResult
+from src.infrastructure.config.settings import settings
 
 
 MODEL_ADI = "paraphrase-multilingual-MiniLM-L12-v2"
-BP_ESIK = 0.15           # Kırılma Noktası (Breaking Point) sapma eşiği (%15)
-TIE_YUZDE_ESIK = 0.05    # Yakın rakip eşiği (%5)
 
 
 class DegradationChainAnalyzer:
@@ -94,20 +93,20 @@ class DegradationChainAnalyzer:
         # Kırılma Noktası (Breaking Point - BP) Tespiti
         bp_idx = int(np.argmax(ardisik_sapma))
         max_sapma = ardisik_sapma[bp_idx]
-        bp_gecerli = max_sapma >= BP_ESIK
+        bp_gecerli = max_sapma >= settings.BP_ESIK
 
         bp_channel_name = None
         if bp_gecerli:
             bp_channel = transformed_list[bp_idx].channel
             bp_channel_name = CHANNEL_NAMES.get(bp_channel, bp_channel.value)
 
-        # Yakın Rakip Kontrolü (< %5 fark)
+        # Yakın Rakip Kontrolü
         close_contenders = []
         if bp_gecerli and max_sapma > 0:
             for idx, sapma_val in enumerate(ardisik_sapma):
                 if idx == bp_idx:
                     continue
-                if abs(sapma_val - max_sapma) / max_sapma < TIE_YUZDE_ESIK:
+                if abs(sapma_val - max_sapma) / max_sapma < settings.TIE_YUZDE_ESIK:
                     ch_name = CHANNEL_NAMES.get(transformed_list[idx].channel, transformed_list[idx].channel.value)
                     close_contenders.append(ch_name)
 
@@ -116,7 +115,7 @@ class DegradationChainAnalyzer:
         for i, transformed in enumerate(transformed_list):
             is_bp = bp_gecerli and (i == bp_idx)
             is_contender = bp_gecerli and (i != bp_idx) and (
-                max_sapma > 0 and abs(ardisik_sapma[i] - max_sapma) / max_sapma < TIE_YUZDE_ESIK
+                max_sapma > 0 and abs(ardisik_sapma[i] - max_sapma) / max_sapma < settings.TIE_YUZDE_ESIK
             )
 
             step = DegradationStep(
