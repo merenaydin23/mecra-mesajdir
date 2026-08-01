@@ -11,7 +11,7 @@ from sentence_transformers import SentenceTransformer
 
 from src.domain.entities.channel import CHANNEL_NAMES
 from src.domain.entities.message import CoreMessage, TransformedMessage
-from src.domain.entities.analysis_result import DegradationStep, DegradationChainResult
+from src.domain.entities.analysis_result import DegradationStep, DegradationChainResult, CombinedAnalysisResult
 
 
 MODEL_ADI = "paraphrase-multilingual-MiniLM-L12-v2"
@@ -41,7 +41,10 @@ class DegradationChainAnalyzer:
             self._is_loaded = True
 
     def analyze_chain(
-        self, core: CoreMessage, transformed_list: List[TransformedMessage]
+        self, 
+        core: CoreMessage, 
+        transformed_list: List[TransformedMessage],
+        analysis_results: List[CombinedAnalysisResult] = None
     ) -> DegradationChainResult:
         """
         Çekirdek mesaj (M0) ve dönüştürülmüş mecralar (M1..Mn) arasındaki
@@ -72,6 +75,14 @@ class DegradationChainAnalyzer:
             # Ardışık Benzerlik: Mn ile Mn-1
             skor_ard = float(cosine_similarity(emb_mevcut, emb_onceki)[0][0])
             sapma_ard = round(1 - skor_ard, 4)
+
+            # Ek ceza (Penalty) mekanizması
+            if analysis_results and len(analysis_results) == len(transformed_list):
+                res = analysis_results[i - 1]
+                if res.info_loss.info_loss_occurred:
+                    sapma_ard += 0.10
+                if res.ambiguity.level == "Yüksek":
+                    sapma_ard += 0.05
 
             # Kümülatif Benzerlik: Mn ile M0
             skor_kum = float(cosine_similarity(emb_mevcut, emb_M0)[0][0])

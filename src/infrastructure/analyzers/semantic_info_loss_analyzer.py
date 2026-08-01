@@ -561,7 +561,7 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
             self._build_pair_result(core, transformed, sims[i])
             for i, transformed in enumerate(transformed_list)
         ]
-        degradation_result = self._degradation_analyzer.analyze_chain(core, transformed_list)
+        degradation_result = self._degradation_analyzer.analyze_chain(core, transformed_list, analysis_results=results)
         return results, degradation_result
 
     async def analyze_pair(self, core: CoreMessage, transformed: TransformedMessage) -> CombinedAnalysisResult:
