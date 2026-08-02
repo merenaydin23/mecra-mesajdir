@@ -18,7 +18,7 @@ const appState = {
 };
 
 // Mecra Tanımları, İkonları ve Kurumsal Logoları
-const CIB_LOGO_URL = 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/%C4%B0leti%C5%9Fim_Ba%C5%9Fkanl%C4%B1%C4%9F%C4%B1_logo.svg/1280px-%C4%B0leti%C5%9Fim_Ba%C5%9Fkanl%C4%B1%C4%9F%C4%B1_logo.svg.png';
+const CIB_LOGO_URL = 'assets/cib-logo.png';
 
 const PLATFORMS_CONFIG = [
   { 
@@ -81,11 +81,14 @@ const PLATFORMS_CONFIG = [
 
 // Sayfa Yüklendiğinde Başlat
 document.addEventListener('DOMContentLoaded', () => {
+  clearStaleLocalHistoryOnce();
   initLucideIcons();
   initEventListeners();
   renderQuickHistoryChips();
   loadDefaultData();
   initTabNavigation();
+  // Sunucu geçmişini de temiz başlangıç için senkronize et (bir kerelik bayrak)
+  clearServerHistoryOnce();
 });
 
 function initLucideIcons() {
@@ -175,8 +178,7 @@ function initEventListeners() {
         showToast('Lütfen geçerli bir çekirdek mesaj girin!', 'warning');
         return;
       }
-      appState.coreMessage = text;
-      saveToHistory(text);
+      // Geçmişe burada yazma — önce imla düzeltmesi, sonra düzeltilmiş metin kaydedilir
       runTransformationAndAnalysis(text);
     });
   }
@@ -200,12 +202,28 @@ function initEventListeners() {
 }
 
 // Varsayılan Verileri Yükle
+function clearStaleLocalHistoryOnce() {
+  try {
+    if (localStorage.getItem('mecra_history_wiped_v1') === '1') return;
+    localStorage.removeItem('mecra_search_history');
+    localStorage.setItem('mecra_history_wiped_v1', '1');
+  } catch (_) { /* ignore */ }
+}
+
+async function clearServerHistoryOnce() {
+  try {
+    if (localStorage.getItem('mecra_server_history_wiped_v1') === '1') return;
+    await fetch('/api/history', { method: 'DELETE' });
+    localStorage.setItem('mecra_server_history_wiped_v1', '1');
+  } catch (_) { /* ignore */ }
+}
+
 function loadDefaultData() {
-  const data = generateMockTransformation(appState.coreMessage);
-  appState.transformedMessages = data.transformedMessages;
-  appState.analysisResults = data.analysisResults;
-  appState.degradationChain = data.degradationChain;
-  appState.degradationMeta = data.degradationMeta || null;
+  // Temiz başlangıç: mock / muq veri yükleme
+  appState.transformedMessages = {};
+  appState.analysisResults = [];
+  appState.degradationChain = [];
+  appState.degradationMeta = null;
   appState.isLoading = false;
   renderPlatformCards();
   renderSummaryTable();
@@ -480,14 +498,44 @@ function renderAnalyticsDetail() {
 async function runTransformationAndAnalysis(coreText) {
   appState.isLoading = true;
   renderSkeletonLoaders();
-  showToast('⚡ Yapay zekâ 8 mecraya dönüştürme işlemini başlattı...', 'info');
 
   try {
-    // 🚀 AŞAMA 1: Sadece Dönüştürme (2 saniyede ekran dolar)
+    // ✍️ AŞAMA 0: Önce imla / yazım düzelt — kutuyu güncelle
+    showToast('✍️ Çekirdek mesaj yazım kurallarına göre düzenleniyor...', 'info');
+    let workingCore = (coreText || '').trim();
+    try {
+      const proofRes = await fetch('/api/proofread', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: workingCore, author: 'Kamu Görevlisi' })
+      });
+      if (proofRes.ok) {
+        const proofData = await proofRes.json();
+        workingCore = (proofData.core_message || workingCore).trim();
+        appState.coreMessage = workingCore;
+        const coreInputEl = document.getElementById('core-message-input');
+        if (coreInputEl) {
+          coreInputEl.value = workingCore;
+          coreInputEl.classList.add('ring-2', 'ring-[#00A3A6]');
+          setTimeout(() => coreInputEl.classList.remove('ring-2', 'ring-[#00A3A6]'), 1200);
+        }
+        if (proofData.core_was_proofread) {
+          showToast('✍️ Çekirdek mesaj düzeltildi (anlam aynı). Dönüşüm başlıyor...', 'success');
+        }
+      }
+    } catch (proofErr) {
+      console.warn('Yazım düzeltme atlandı:', proofErr);
+    }
+
+    // Geçmişe yalnızca düzeltilmiş (çalışan) metni kaydet
+    saveToHistory(workingCore);
+
+    // 🚀 AŞAMA 1: Düzeltilmiş core üzerinden 8 mecra dönüşümü
+    showToast('⚡ 8 mecraya dönüştürülüyor...', 'info');
     const transformRes = await fetch('/api/transform', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: coreText, author: "Kamu Görevlisi" })
+      body: JSON.stringify({ content: workingCore, author: 'Kamu Görevlisi', skip_proofread: true })
     });
 
     if (transformRes.ok) {
@@ -495,6 +543,13 @@ async function runTransformationAndAnalysis(coreText) {
       const transformedObj = {};
       const initialAnalysisArr = [];
       const platformPayload = [];
+      const correctedCore = (transformData.core_message || workingCore).trim();
+
+      appState.coreMessage = correctedCore;
+      const coreInputEl = document.getElementById('core-message-input');
+      if (coreInputEl && coreInputEl.value.trim() !== correctedCore) {
+        coreInputEl.value = correctedCore;
+      }
 
       transformData.platforms.forEach(p => {
         transformedObj[p.id] = p.transformed_content;
@@ -522,7 +577,7 @@ async function runTransformationAndAnalysis(coreText) {
         const analyzeRes = await fetch('/api/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ core_message: coreText, platforms: platformPayload, author: "Kamu Görevlisi" })
+          body: JSON.stringify({ core_message: correctedCore, platforms: platformPayload, author: "Kamu Görevlisi" })
         });
 
         if (analyzeRes.ok) {
@@ -620,10 +675,15 @@ function renderPlatformCards() {
   grid.innerHTML = '';
 
   PLATFORMS_CONFIG.forEach(platform => {
-    const message = appState.transformedMessages[platform.id] || "Dönüştürülüyor...";
-    const analysis = appState.analysisResults.find(a => a.channel === platform.id) || {
-      sim: 85, loss: 'Hayır', cta: 'Evet', sentiment: 'POS', ambiguity: 'Düşük'
-    };
+    const message = (appState.transformedMessages[platform.id] || '').trim();
+    const hasContent = message.length > 0;
+    const analysis = appState.analysisResults.find(a => a.channel === platform.id) || null;
+    const simLabel = analysis && analysis.sim != null ? `%${analysis.sim}` : '—';
+    const sentimentLabel = analysis ? plainSentiment(analysis.sentiment) : '—';
+    const ambiguityLabel = analysis ? plainAmbiguity(analysis.ambiguity).text : 'Beklemede';
+    const sentimentClass = !analysis
+      ? 'text-slate-500'
+      : (String(analysis.sentiment || '').toUpperCase().includes('POS') ? 'text-emerald-600' : 'text-rose-600');
 
     let logoHtml = '';
     if (platform.logoUrl) {
@@ -634,8 +694,15 @@ function renderPlatformCards() {
       logoHtml = `<i data-lucide="${platform.icon}" class="w-4 h-4 text-[#00A3A6]"></i>`;
     }
 
+    const bodyHtml = hasContent
+      ? `<div class="text-[13px] text-slate-700 leading-relaxed whitespace-pre-line bg-slate-50/80 p-3.5 rounded-lg border border-slate-200/70 max-h-44 overflow-y-auto platform-message-scroll">${escapeHtml(message)}</div>`
+      : `<div class="platform-empty-slot">
+           <span class="platform-empty-title">İçerik henüz üretilmedi</span>
+           <span class="platform-empty-hint">Çekirdek mesajı girip «Analiz Et ve Dönüştür» ile başlatın.</span>
+         </div>`;
+
     const cardHtml = `
-      <div onclick="openExpandedCardModal('${platform.id}')" class="corporate-card p-5 flex flex-col justify-between hover:-translate-y-1 cursor-pointer transition-all duration-300 group">
+      <div onclick="openExpandedCardModal('${platform.id}')" class="corporate-card platform-card p-5 flex flex-col justify-between cursor-pointer transition-all duration-300 group">
         <div>
           <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
             <div class="flex items-center space-x-2.5 min-w-0">
@@ -647,25 +714,22 @@ function renderPlatformCards() {
                 <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wide">${platform.category}</span>
               </div>
             </div>
-            <span class="text-[11px] px-2 py-1 rounded-md font-bold bg-[#0B1F33] text-white shrink-0">
-              %${analysis.sim}
+            <span class="text-[11px] px-2 py-1 rounded-md font-bold shrink-0 ${hasContent ? 'bg-[#0B1F33] text-white' : 'bg-slate-100 text-slate-500 border border-slate-200'}">
+              ${simLabel}
             </span>
           </div>
-
-          <div class="text-[13px] text-slate-700 leading-relaxed whitespace-pre-line bg-slate-50/80 p-3.5 rounded-lg border border-slate-200/70 max-h-44 overflow-y-auto platform-message-scroll">
-            ${escapeHtml(message)}
-          </div>
+          ${bodyHtml}
         </div>
 
         <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-          <div class="flex items-center gap-2 font-semibold">
-            <img src="${CIB_LOGO_URL}" alt="" class="w-4 h-4 object-contain opacity-70">
-            <span>Duygu: <strong class="${String(analysis.sentiment || '').toUpperCase().includes('POS') ? 'text-emerald-600' : 'text-rose-600'}">${plainSentiment(analysis.sentiment)}</strong></span>
+          <div class="flex items-center gap-2 font-semibold min-w-0">
+            <img src="${CIB_LOGO_URL}" alt="" class="w-4 h-4 object-contain opacity-70 shrink-0">
+            <span class="truncate">Duygu: <strong class="${sentimentClass}">${sentimentLabel}</strong></span>
             <span>·</span>
-            <span>${plainAmbiguity(analysis.ambiguity).text}</span>
+            <span class="truncate">${ambiguityLabel}</span>
           </div>
-          <div class="flex items-center space-x-1.5">
-            <button onclick="copyPlatformMessage('${platform.id}', event)" title="Kopyala" class="px-2.5 py-1.5 rounded-md bg-teal-50 hover:bg-[#00A3A6] text-[#00A3A6] hover:text-white font-bold transition-all border border-teal-200/80 flex items-center gap-1">
+          <div class="flex items-center space-x-1.5 shrink-0">
+            <button onclick="copyPlatformMessage('${platform.id}', event)" title="Kopyala" class="px-2.5 py-1.5 rounded-md bg-teal-50 hover:bg-[#00A3A6] text-[#00A3A6] hover:text-white font-bold transition-all border border-teal-200/80 flex items-center gap-1 ${hasContent ? '' : 'opacity-40 pointer-events-none'}">
               <i data-lucide="copy" class="w-3.5 h-3.5"></i>
             </button>
             <div class="text-[#005F61] font-bold flex items-center gap-1 bg-slate-100 px-2 py-1.5 rounded-md">
@@ -686,7 +750,7 @@ function openExpandedCardModal(platformId) {
   const platform = PLATFORMS_CONFIG.find(p => p.id === platformId);
   if (!platform) return;
 
-  const message = appState.transformedMessages[platformId] || "İçerik yükleniyor...";
+  const message = (appState.transformedMessages[platformId] || '').trim() || 'Bu mecra için henüz dönüşüm yapılmadı.';
   const analysis = appState.analysisResults.find(a => a.channel === platformId) || {
     sim: 85, loss: 'Hayır', cta: 'Evet', sentiment: 'POS', ambiguity: 'Düşük'
   };
@@ -1783,24 +1847,25 @@ function renderOfficialDocument(channelId = 'press_release') {
   const logoUrl = CIB_LOGO_URL;
 
   const seriousnessConfig = {
-    official_letter: { level: 'Resmiyet Seviyesi: %100 (Kamu Bürokrasisi)', badgeClass: 'bg-red-100 text-red-800 border-red-200' },
-    press_release: { level: 'Resmiyet Seviyesi: %95 (Basın Müşavirliği)', badgeClass: 'bg-red-100 text-red-800 border-red-200' },
-    agency_news: { level: 'Resmiyet Seviyesi: %90 (AA/İHA Ajans)', badgeClass: 'bg-blue-100 text-blue-800 border-blue-200' },
-    linkedin: { level: 'Resmiyet Seviyesi: %85 (Kurumsal Dijital)', badgeClass: 'bg-slate-100 text-slate-800 border-slate-200' },
-    messaging_chain: { level: 'Resmiyet Seviyesi: %75 (Vatandaş Bilgilendirme)', badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
-    vertical_video: { level: 'Resmiyet Seviyesi: %80 (Prodüksiyon Belgesi)', badgeClass: 'bg-purple-100 text-purple-800 border-purple-200' },
-    x_twitter: { level: 'Resmiyet Seviyesi: %80 (Sosyal Medya Duyurusu)', badgeClass: 'bg-teal-100 text-teal-800 border-teal-200' },
-    tabloid: { level: 'Resmiyet Seviyesi: %65 (Medya Takip)', badgeClass: 'bg-amber-100 text-amber-800 border-amber-200' }
+    official_letter: { level: 'Resmiyet Seviyesi: %100 (Kamu Bürokrasisi)', tone: 'red' },
+    press_release: { level: 'Resmiyet Seviyesi: %95 (Basın Müşavirliği)', tone: 'red' },
+    agency_news: { level: 'Resmiyet Seviyesi: %90 (AA/İHA Ajans)', tone: 'blue' },
+    linkedin: { level: 'Resmiyet Seviyesi: %85 (Kurumsal Dijital)', tone: 'slate' },
+    messaging_chain: { level: 'Resmiyet Seviyesi: %75 (Vatandaş Bilgilendirme)', tone: 'green' },
+    vertical_video: { level: 'Resmiyet Seviyesi: %80 (Prodüksiyon Belgesi)', tone: 'purple' },
+    x_twitter: { level: 'Resmiyet Seviyesi: %80 (Sosyal Medya Duyurusu)', tone: 'teal' },
+    tabloid: { level: 'Resmiyet Seviyesi: %65 (Medya Takip)', tone: 'amber' }
   };
 
   if (badge && seriousnessConfig[channelId]) {
     badge.textContent = seriousnessConfig[channelId].level;
-    badge.className = `px-3 py-1 rounded-full text-xs font-black border ${seriousnessConfig[channelId].badgeClass}`;
+    badge.className = `evrak-badge evrak-badge-${seriousnessConfig[channelId].tone}`;
   }
 
   if (channelId === 'official_letter') {
     paper.innerHTML = `
-      <div class="text-center pb-5 mb-6" style="border-bottom: 3px double #0F172A;">
+      <img src="${logoUrl}" alt="" class="document-watermark">
+      <div class="text-center pb-5 mb-6 relative z-10" style="border-bottom: 3px double #0F172A;">
         <div class="flex items-center justify-center mb-3">
           <img src="${logoUrl}" alt="Logo" class="h-16 w-auto object-contain">
         </div>
@@ -1808,25 +1873,26 @@ function renderOfficialDocument(channelId = 'press_release') {
         <div class="text-xs font-semibold text-slate-600 uppercase tracking-widest mt-1 font-sans">Basın ve Yayın Dairesi Başkanlığı</div>
         <div class="text-lg font-extrabold uppercase mt-4 tracking-widest text-[#0F172A] font-sans">RESMİ YAZI VE İDARİ TALİMAT BELGESİ</div>
       </div>
-      <div class="flex items-center justify-between text-xs font-bold text-slate-700 mb-6 pb-2 border-b border-slate-200 font-sans">
+      <div class="flex items-center justify-between text-xs font-bold text-slate-700 mb-6 pb-2 border-b border-slate-200 font-sans relative z-10">
         <div>Sayı : <span contenteditable="true" class="editable-field">E-75249013-010.06-2026/4108</span></div>
         <div>Tarih : <span contenteditable="true" class="editable-field">${todayStr}</span></div>
       </div>
-      <div class="text-sm font-bold text-slate-900 mb-6 font-sans text-center tracking-wide">İLGİLİ KURUM VE KURULUŞ MÜDÜRLÜKLERİNE</div>
-      <div id="draft-content-editable" contenteditable="true" class="text-sm md:text-base leading-relaxed text-justify space-y-4 min-h-[350px] outline-none editable-content text-slate-900 font-serif">
+      <div class="text-sm font-bold text-slate-900 mb-6 font-sans text-center tracking-wide relative z-10">İLGİLİ KURUM VE KURULUŞ MÜDÜRLÜKLERİNE</div>
+      <div id="draft-content-editable" contenteditable="true" class="text-sm md:text-base leading-relaxed text-justify space-y-4 min-h-[350px] outline-none editable-content text-slate-900 font-serif relative z-10">
         ${formatTextToParagraphs(rawMsg)}
       </div>
-      <div class="mt-12 text-center font-sans">
+      <div class="mt-12 text-center font-sans relative z-10">
         <div class="font-bold text-slate-900 text-sm">Ayşe YILDIZ</div>
         <div class="text-xs text-slate-600">Başkan a. / Genel Sekreter</div>
       </div>
-      <div class="mt-10 pt-4 border-t border-slate-300 text-center text-[11px] text-slate-500 font-sans">
+      <div class="mt-10 pt-4 border-t border-slate-300 text-center text-[11px] text-slate-500 font-sans relative z-10">
         <div class="font-bold text-slate-700">T.C. CUMHURBAŞKANLIĞI İLETİŞİM BAŞKANLIĞI</div>
-        <div>Ziyagökalp Caddesi No: 43 Çankaya / ANKARA • Tel: 0312 590 20 00</div>
+        <div>Ziyagökalp Caddesi No: 43 Çankaya / ANKARA · Tel: 0312 590 20 00</div>
       </div>`;
   } else {
     paper.innerHTML = `
-      <div class="text-center pb-5 mb-6" style="border-bottom: 3px double #b30000;">
+      <img src="${logoUrl}" alt="" class="document-watermark">
+      <div class="text-center pb-5 mb-6 relative z-10" style="border-bottom: 3px double #b30000;">
         <div class="flex items-center justify-center mb-3">
           <img src="${logoUrl}" alt="Logo" class="h-16 w-auto object-contain">
         </div>
@@ -1834,16 +1900,16 @@ function renderOfficialDocument(channelId = 'press_release') {
         <div class="text-xs font-semibold text-slate-600 uppercase tracking-widest mt-1 font-sans">Basın ve Yayın Dairesi Başkanlığı</div>
         <div class="text-xl font-extrabold uppercase mt-4 tracking-widest text-[#b30000] font-sans">${getChannelTitleUpper(channelId)}</div>
       </div>
-      <div class="flex items-center justify-between text-xs font-bold text-slate-700 mb-6 pb-2 border-b border-slate-200 font-sans">
+      <div class="flex items-center justify-between text-xs font-bold text-slate-700 mb-6 pb-2 border-b border-slate-200 font-sans relative z-10">
         <div>Tarih: <span id="draft-date" contenteditable="true" class="editable-field">${todayStr}</span></div>
-        <div>Evrak Kodu: <span id="draft-number" contenteditable="true" class="editable-field">B.02.1.İMB.0.10/2026-${channelId.toUpperCase()}</span></div>
+        <div>Evrak Kodu: <span id="draft-number" contenteditable="true" class="editable-field">B.02.1.İMB.0.10/2026-${String(channelId).toUpperCase()}</span></div>
       </div>
-      <div id="draft-content-editable" contenteditable="true" class="text-sm md:text-base leading-relaxed text-justify space-y-4 min-h-[380px] outline-none editable-content text-slate-900 font-serif">
+      <div id="draft-content-editable" contenteditable="true" class="text-sm md:text-base leading-relaxed text-justify space-y-4 min-h-[380px] outline-none editable-content text-slate-900 font-serif relative z-10">
         ${formatTextToParagraphs(rawMsg)}
       </div>
-      <div class="mt-14 pt-4 border-t border-slate-300 text-center text-[11px] text-slate-500 font-sans space-y-1">
+      <div class="mt-14 pt-4 border-t border-slate-300 text-center text-[11px] text-slate-500 font-sans space-y-1 relative z-10">
         <div class="font-bold text-slate-700">T.C. CUMHURBAŞKANLIĞI İLETİŞİM BAŞKANLIĞI</div>
-        <div>Ziyagökalp Caddesi No: 43 Çankaya / ANKARA • basin@iletisim.gov.tr • Tel: 0312 590 20 00</div>
+        <div>Ziyagökalp Caddesi No: 43 Çankaya / ANKARA · basin@iletisim.gov.tr · Tel: 0312 590 20 00</div>
       </div>`;
   }
 }
