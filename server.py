@@ -52,6 +52,7 @@ app.add_middleware(
 class TransformRequest(BaseModel):
     content: str
     author: str = "Kamu Görevlisi"
+    skip_proofread: bool = False
 
 class PlatformItem(BaseModel):
     id: str
@@ -68,16 +69,42 @@ analyzer_service = SemanticAndInfoLossAnalyzer()
 history_repo = HistoryRepository()
 benchmark_evaluator = BenchmarkEvaluator(analyzer=analyzer_service)
 
+# MSSQL opsiyonel — yoksa JSON geçmiş ile local çalışır
+try:
+    from src.infrastructure.database.connection import db_manager
+    from src.infrastructure.database.repositories.mssql_repository import MSSQLRepository
+    mssql_repo = MSSQLRepository()
+except Exception as _db_boot_err:
+    db_manager = None
+    mssql_repo = None
+    print(f"[DB] MSSQL baslatma atlandi: {_db_boot_err}")
+
 @app.get("/api/health")
 def health_check():
     nli_status = "loaded" if getattr(analyzer_service, "_nli_model", None) else "error_loading" if getattr(analyzer_service, "_models_loaded", False) else "not_loaded"
     embed_status = "loaded" if getattr(analyzer_service, "_embed_model", None) else "error_loading" if getattr(analyzer_service, "_models_loaded", False) else "not_loaded"
     ner_status = "loaded" if getattr(analyzer_service, "_nlp_ner", None) else "error_loading" if getattr(analyzer_service, "_models_loaded", False) else "not_loaded"
-    
+
+    mode = getattr(llm_service, "mode", os.getenv("LLM_MODE", "external"))
+    provider = getattr(llm_service, "provider", "")
+    key_set = bool(getattr(llm_service, "api_key", "") or os.getenv("GROQ_API_KEY") or os.getenv("INTERNAL_LLM_API_KEY"))
+
+    db_status = {"mode": "off", "enabled": False, "available": False}
+    if db_manager is not None:
+        try:
+            db_status = db_manager.status()
+        except Exception as e:
+            db_status = {"mode": "error", "enabled": False, "available": False, "error": str(e)[:160]}
+
     return {
         "status": "ok",
-        "llm_key_set": bool(os.getenv("LLM_API_KEY")),
+        "llm_mode": mode,
+        "llm_provider": provider,
+        "llm_model": getattr(llm_service, "model_name", ""),
+        "llm_key_set": key_set,
         "models_loaded": bool(getattr(analyzer_service, "_models_loaded", False)),
+        "degraded_mode": bool(getattr(analyzer_service, "_degraded_mode", False)),
+        "database": db_status,
         "nlp_models": {
             "nli_model": nli_status,
             "embed_model": embed_status,
@@ -90,6 +117,34 @@ def favicon():
     from fastapi.responses import Response
     return Response(status_code=204)
 
+# ✍️ AŞAMA 0: Çekirdek mesaj yazım / imla düzeltmesi (anlam değişmez)
+@app.post("/api/proofread")
+async def proofread_core(req: TransformRequest):
+    if not req.content.strip():
+        raise HTTPException(status_code=400, detail="Çekirdek mesaj boş olamaz.")
+
+    original = req.content.strip()
+    try:
+        if hasattr(llm_service, "proofread_core_message"):
+            corrected = await llm_service.proofread_core_message(original)
+        else:
+            corrected = original
+        corrected = (corrected or original).strip() or original
+        return {
+            "original_core_message": original,
+            "core_message": corrected,
+            "core_was_proofread": corrected != original,
+        }
+    except Exception as e:
+        # Düzeltme başarısızsa orijinali döndür; akış bozulmasın
+        return {
+            "original_core_message": original,
+            "core_message": original,
+            "core_was_proofread": False,
+            "warning": str(e)[:200],
+        }
+
+
 # 🚀 AŞAMA 1: IŞIK HIZINDA DÖNÜŞTÜRÜCÜ (Sadece LLM - 2-3 saniye)
 @app.post("/api/transform")
 async def fast_transform(req: TransformRequest):
@@ -97,10 +152,25 @@ async def fast_transform(req: TransformRequest):
         raise HTTPException(status_code=400, detail="Çekirdek mesaj boş olamaz.")
 
     try:
-        core_message = CoreMessage(content=req.content.strip(), author=req.author)
+        original_core = req.content.strip()
+        # Proofread ayrı endpoint'te yapıldıysa burada tekrar etme (skip_proofread)
+        skip_proofread = bool(getattr(req, "skip_proofread", False))
         transform_use_case = TransformMessageUseCase(llm_service=llm_service)
-        transformed_messages = await transform_use_case.execute_all(content=req.content.strip())
-        
+        if skip_proofread:
+            from src.domain.entities.message import CoreMessage as _CM
+            core = _CM(content=original_core, author=req.author)
+            if hasattr(llm_service, "transform_channels_only"):
+                transformed_messages = await llm_service.transform_channels_only(core)
+            else:
+                _, transformed_messages = await transform_use_case.execute_all(
+                    content=original_core, author=req.author
+                )
+            corrected_core = original_core
+        else:
+            corrected_core, transformed_messages = await transform_use_case.execute_all(
+                content=original_core, author=req.author
+            )
+
         from src.domain.entities.channel import CHANNEL_NAMES
         platform_data = []
         for msg in transformed_messages:
@@ -111,7 +181,9 @@ async def fast_transform(req: TransformRequest):
             })
 
         return {
-            "core_message": req.content.strip(),
+            "core_message": corrected_core,
+            "original_core_message": original_core,
+            "core_was_proofread": corrected_core != original_core,
             "platforms": platform_data
         }
     except Exception as e:
@@ -207,10 +279,29 @@ async def fast_analyze(req: AnalyzeRequest):
             }
         }
 
+        # 1) Her zaman local JSON geçmiş
         try:
             history_repo.save_analysis(result)
         except Exception as hist_err:
-            print(f"⚠️ [HISTORY] Kayıt uyarısı: {hist_err}")
+            print(f"[HISTORY] Kayit uyarisi: {hist_err}")
+
+        # 2) MSSQL varsa analiz oturumunu DB'ye yaz (yoksa sessizce atla)
+        result["db_saved"] = False
+        result["campaign_id"] = None
+        if mssql_repo is not None and db_manager is not None and db_manager.is_enabled():
+            try:
+                campaign_id = mssql_repo.save_analysis_session(
+                    core_message=core_message,
+                    transformed_messages=transformed_messages,
+                    degradation_result=degradation_chain,
+                    analysis_results=analysis_results,
+                    campaign_title="Web Analiz Oturumu",
+                )
+                if campaign_id and campaign_id > 0:
+                    result["db_saved"] = True
+                    result["campaign_id"] = campaign_id
+            except Exception as db_err:
+                print(f"[MSSQL] Kayit atlandi (local JSON aktif): {db_err}")
 
         return result
     except Exception as e:
