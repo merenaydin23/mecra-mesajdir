@@ -65,7 +65,7 @@ class AnalyzeRequest(BaseModel):
 
 # Global Singleton Servisler
 llm_service = LLMMessageTransformerService()
-analyzer_service = SemanticAndInfoLossAnalyzer()
+analyzer_service = SemanticAndInfoLossAnalyzer(llm_service=llm_service)
 history_repo = HistoryRepository()
 benchmark_evaluator = BenchmarkEvaluator(analyzer=analyzer_service)
 
@@ -87,7 +87,12 @@ def health_check():
 
     mode = getattr(llm_service, "mode", os.getenv("LLM_MODE", "external"))
     provider = getattr(llm_service, "provider", "")
-    key_set = bool(getattr(llm_service, "api_key", "") or os.getenv("GROQ_API_KEY") or os.getenv("INTERNAL_LLM_API_KEY"))
+    key_set = bool(
+        getattr(llm_service, "api_key", "")
+        or os.getenv("GEMINI_API_KEY")
+        or os.getenv("GOOGLE_API_KEY")
+        or os.getenv("INTERNAL_LLM_API_KEY")
+    )
 
     db_status = {"mode": "off", "enabled": False, "available": False}
     if db_manager is not None:

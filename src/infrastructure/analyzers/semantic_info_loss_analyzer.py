@@ -123,7 +123,7 @@ CARPAN_CARPANLARI = {
 class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
     """Anlamsal Benzerlik, Bilgi Kaybı, CTA, Duygu, Belirsizlik ve Bozulma Zinciri Servisi."""
 
-    def __init__(self):
+    def __init__(self, llm_service=None):
         self._nli_tokenizer = None
         self._nli_model = None
         self._embed_model = None
@@ -133,6 +133,8 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
         self._ambiguity_analyzer = AmbiguityAnalyzer()
         self._degradation_analyzer = DegradationChainAnalyzer()
         self._models_loaded = False
+        self._llm_service = llm_service  # Gemini hibrit olgu çıkarma
+        self._last_fact_source = "rule"  # rule | ai | hybrid
 
     def _load_models(self):
         """NLP ve AI modellerini lazy-loading şeklinde yükler."""
@@ -261,12 +263,331 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
                 occupied_spans.append(span)
         return facts
 
+    # spaCy'nin kişi sandığı Türkçe sıfat / belirteç / kurum parçaları
+    _FALSE_PERSON_TOKENS = frozenset({
+        "yeni", "eski", "büyük", "küçük", "kucuk", "önemli", "onemli", "son", "ilk",
+        "genel", "özel", "ozel", "resmi", "kamu", "yerel", "ulusal", "teknik",
+        "güncel", "guncel", "mevcut", "ilgili", "söz", "soz", "böyle", "boyle",
+        "geçen", "gecen", "önümüzdeki", "onumuzdeki", "bu", "şu", "o",
+        "iletişim", "iletisim", "başkanlık", "baskanlik", "bakanlık", "bakanlik",
+        "valilik", "müdürlük", "mudurluk", "ekip", "birim", "kurum", "panel",
+        "masa", "haber", "duyuru", "çalışma", "calisma",
+    })
+    _TEMPORAL_TAIL = frozenset({
+        "hafta", "haftası", "haftasi", "ay", "ayı", "ayi", "gün", "gun",
+        "yıl", "yil", "yılı", "yili", "dönem", "donem", "sezon", "çeyrek", "ceyrek",
+    })
+    _ORG_TAIL = frozenset({
+        "başkanlığı", "baskanligi", "bakanlığı", "bakanligi", "valiliği", "valiligi",
+        "müdürlüğü", "mudurlugu", "daire", "başkanlık", "baskanlik", "kurumu", "ajansı", "ajansi",
+    })
+    _CONCEPT_TAIL = frozenset({
+        "algoritma", "algoritması", "algoritmasi", "sistem", "sistemi",
+        "entegrasyon", "entegrasyonu", "model", "modeli", "yazılım", "yazilim",
+        "uygulama", "uygulaması", "uygulamasi", "platform", "platformu",
+        "panel", "paneli", "masa", "masası", "masasi",
+    })
+    _CONCEPT_SYNONYMS = {
+        "algoritma": ("algoritma", "sistem", "yapay zeka", "yapay zekâ", "entegrasyon", "model"),
+        "sistem": ("sistem", "algoritma", "entegrasyon", "platform", "panel"),
+        "entegrasyon": ("entegrasyon", "algoritma", "sistem", "yapay zeka", "yapay zekâ"),
+        "panel": ("panel", "sistem", "platform", "masa"),
+        "masa": ("masa", "panel", "sistem", "birim"),
+    }
+    # Bilinen kurum tam adları (sözlük)
+    _KNOWN_ORGS = (
+        r"T\.?\s*C\.?\s*Cumhurbaşkanlığı\s+İletişim\s+Başkanlığı",
+        r"Cumhurbaşkanlığı\s+İletişim\s+Başkanlığı",
+        r"İletişim\s+Başkanlığı",
+        r"Iletisim\s+Baskanligi",
+        r"CİMER",
+        r"CIMER",
+        r"AFAD(?:\s+Başkanlığı)?",
+        r"(?:İl\s+)?Valilik(?:leri|i)?",
+        r"Valilik",
+    )
+
+    def _extract_temporal_phrases(self, text: str) -> List[Tuple[str, str]]:
+        """'geçen hafta / geçen ay / geçen salı' → DATE (tek başına 'Geçen' kişi olmaz)."""
+        patterns = [
+            r"(?i)\b(?:geçen|gecen|önümüzdeki|onumuzdeki|bu|şu)\s+(?:hafta|ay|gün|gun|yıl|yil|dönem|donem|çeyrek|ceyrek)\w*",
+            r"(?i)\b(?:geçen|gecen|önümüzdeki|onumuzdeki|bu)\s+(?:pazartesi|salı|sali|çarşamba|carsamba|perşembe|persembe|cuma|cumartesi|pazar)\b",
+            r"(?i)\bbugün\s+itibari(?:y|yle)?le\b",
+            r"(?i)\b(?:dün|bugün|bugun|yarın|yarin|geçen\s+gün)\b",
+        ]
+        out: List[Tuple[str, str]] = []
+        seen = set()
+        for pat in patterns:
+            for m in re.finditer(pat, text):
+                val = re.sub(r"\s+", " ", m.group().strip())
+                key = val.lower()
+                if key not in seen:
+                    seen.add(key)
+                    out.append(("DATE", val))
+        return out
+
+    def _extract_known_orgs(self, text: str) -> List[Tuple[str, str]]:
+        """Kurum adlarını tam haliyle çıkarır (İletişim Başkanlığı vb.)."""
+        out: List[Tuple[str, str]] = []
+        seen = set()
+        for pat in self._KNOWN_ORGS:
+            for m in re.finditer(pat, text, flags=re.IGNORECASE):
+                val = re.sub(r"\s+", " ", m.group().strip())
+                # Canonical yazım
+                low = val.lower().replace("ı", "i").replace("İ", "i")
+                if "iletisim" in low and "baskanlig" in low:
+                    val = "İletişim Başkanlığı"
+                elif "cimer" in low.replace("İ", "i"):
+                    val = "CİMER"
+                elif low.startswith("afad"):
+                    val = "AFAD"
+                elif "valilik" in low:
+                    val = "Valilik"
+                key = val.lower()
+                if key not in seen:
+                    seen.add(key)
+                    out.append(("ORG", val))
+        return out
+
+    def _extract_concept_phrases(self, text: str) -> List[Tuple[str, str]]:
+        """Kesilmiş PER yerine tam kavramı çıkarır."""
+        patterns = [
+            r"(?i)\byeni\s+(?:\S+\s+){0,3}(?:algoritma|sistem|entegrasyon|model|yazılım|uygulama|platform|panel|masa|hat)\w*",
+            r"(?i)\bdijital\s+kriz\s+masa\w*",
+            r"(?i)\btakip\s+panel\w*",
+            r"(?i)\byönlendirme\s+panel\w*",
+            r"(?i)\bdeprem\s+bilgilendirme\s+hatt\w*",
+            r"(?i)\bkamuoyu\s+bilgilendirme\w*",
+            r"(?i)\basılsız\s+paylaşım\w*",
+            r"(?i)\byapay\s+zek[aâ]\s+entegrasyon\w*",
+            r"(?i)\b(?:algoritma|takip\s+paneli|kriz\s+masası|yönlendirme\s+paneli)\w*\b",
+        ]
+        found: List[Tuple[str, str]] = []
+        seen = set()
+        for pat in patterns:
+            for m in re.finditer(pat, text):
+                val = re.sub(r"\s+", " ", m.group().strip())
+                if val.lower() in {"sistem", "sistemi", "model", "modeli", "panel", "masa"}:
+                    continue
+                key = val.lower()
+                if key not in seen and len(val) >= 8:
+                    seen.add(key)
+                    found.append(("MISC", val))
+        return found
+
+    def _expand_from_doc(self, doc, ent, tails: frozenset, max_extra: int = 4):
+        """Entity sonrası tail kelimesine kadar span genişlet."""
+        for i in range(ent.end, min(ent.end + max_extra, len(doc))):
+            w = doc[i].text.lower().strip(".,;:'\"")
+            if w in tails:
+                return doc[ent.start : i + 1].text.strip()
+        return None
+
     def _extract_named_entities(self, text: str) -> List[Tuple[str, str]]:
-        if self._nlp_ner is None:
-            return []
-        doc = self._nlp_ner(text)
-        return [(ent.label_, ent.text.strip()) for ent in doc.ents
-                if ent.label_ in ("ORG", "PER", "PERSON", "LOC", "MISC")]
+        results: List[Tuple[str, str]] = []
+        seen = set()
+
+        def _add(label: str, val: str):
+            val = re.sub(r"\s+", " ", (val or "").strip())
+            if not val:
+                return
+            key = (label, val.lower())
+            if key in seen:
+                return
+            # Tek token false-person / kurum parçası ekleme
+            if label in ("PER", "PERSON") and val.lower() in self._FALSE_PERSON_TOKENS:
+                return
+            if label in ("PER", "PERSON") and len(val.split()) == 1 and val.lower() in self._FALSE_PERSON_TOKENS:
+                return
+            seen.add(key)
+            results.append((label, val))
+
+        # 1) Sözlük: kurum + zaman (spaCy'den önce — doğru tam adlar)
+        for label, val in self._extract_known_orgs(text):
+            _add(label, val)
+        for label, val in self._extract_temporal_phrases(text):
+            _add(label, val)
+        for label, val in self._extract_concept_phrases(text):
+            _add(label, val)
+
+        # 2) spaCy NER + akıllı genişletme
+        if self._nlp_ner is not None:
+            doc = self._nlp_ner(text)
+            for ent in doc.ents:
+                if ent.label_ not in ("ORG", "PER", "PERSON", "LOC", "MISC"):
+                    continue
+                val = ent.text.strip()
+                if not val:
+                    continue
+                label = ent.label_
+                tok = val.lower().strip()
+
+                if label in ("PER", "PERSON"):
+                    # Geçen + hafta/ay → DATE
+                    if tok in {"geçen", "gecen", "önümüzdeki", "onumuzdeki", "bu", "şu"}:
+                        expanded = self._expand_from_doc(doc, ent, self._TEMPORAL_TAIL, 2)
+                        if expanded:
+                            _add("DATE", expanded)
+                        continue
+                    # İletişim + Başkanlığı → ORG
+                    if tok in {"iletişim", "iletisim", "cumhurbaşkanlığı", "cumhurbaskanligi"}:
+                        expanded = self._expand_from_doc(doc, ent, self._ORG_TAIL, 3)
+                        if expanded:
+                            _add("ORG", expanded)
+                        continue
+                    # Yeni + algoritma/panel → MISC
+                    if tok in self._FALSE_PERSON_TOKENS:
+                        expanded = self._expand_from_doc(doc, ent, self._CONCEPT_TAIL, 5)
+                        if expanded and len(expanded.split()) >= 2:
+                            _add("MISC", expanded)
+                        continue
+                    if len(val.split()) == 1 and tok in self._FALSE_PERSON_TOKENS:
+                        continue
+
+                if label == "ORG":
+                    # Yarım kalmış "İletişim" → Başkanlığı ile birleştir
+                    if tok in {"iletişim", "iletisim"}:
+                        expanded = self._expand_from_doc(doc, ent, self._ORG_TAIL, 3)
+                        if expanded:
+                            _add("ORG", expanded)
+                            continue
+
+                _add(label, val)
+
+        # 3) Temizlik + yeniden etiketleme
+        cleaned: List[Tuple[str, str]] = []
+        for l, v in results:
+            v2 = re.sub(r"\s+", " ", v.strip())
+            # İyelik/hal eklerini kırp: Başkanlığı'nda → Başkanlığı
+            v2 = re.sub(r"(['’](?:nda|nde|nt[ae]|n[ıi]n|n[ae]|yla|yle))\b", "", v2, flags=re.I).strip()
+            # Kavramları kanonik forma çek
+            if re.search(r"deprem\s+bilgilendirme\s+hatt", v2, flags=re.I):
+                v2 = "deprem bilgilendirme hattı"
+            elif re.search(r"\byönlendirme\s+panel", v2, flags=re.I):
+                v2 = (
+                    "yeni kurduğumuz yönlendirme paneli"
+                    if v2.lower().startswith("yeni")
+                    else "yönlendirme paneli"
+                )
+            elif re.search(r"kamuoyu\s+bilgilendirme", v2, flags=re.I):
+                v2 = "kamuoyu bilgilendirmesi"
+            elif re.search(r"asılsız\s+paylaşım", v2, flags=re.I):
+                v2 = "asılsız paylaşım"
+            low = v2.lower()
+            # Bilinen kurumlar: spaCy LOC/PER → ORG (false-person filtresinden ÖNCE)
+            ascii_low = (
+                low.replace("İ", "i").replace("I", "i").replace("ı", "i")
+                .replace("ğ", "g").replace("ş", "s").replace("ü", "u").replace("ö", "o").replace("ç", "c")
+            )
+            if "iletisim" in ascii_low and "baskanlig" in ascii_low:
+                v2, l, low = "İletişim Başkanlığı", "ORG", "iletişim başkanlığı"
+            elif ascii_low == "afad" or ascii_low.startswith("afad "):
+                v2, l, low = "AFAD", "ORG", "afad"
+            elif ascii_low in {"cimer"} or ascii_low.startswith("cimer"):
+                v2, l, low = "CİMER", "ORG", "cimer"
+            elif "valilik" in ascii_low:
+                v2, l, low = "Valilik", "ORG", "valilik"
+            # Tek kelimelik sıfat tuzakları yalnız KİŞİ için (Valilik/AFAD ORG kalsın)
+            if l in ("PER", "PERSON") and low in self._FALSE_PERSON_TOKENS and len(v2.split()) == 1:
+                continue
+            # Kurum parçası / tam kurum asla KİŞİ olmasın
+            if l in ("PER", "PERSON"):
+                if re.search(r"başkanlığ|bakanlığ|valili[ğg]|müdürlüğ|iletişim|afad", low):
+                    cleaned.append(("ORG", v2))
+                    continue
+                if len(v2.split()) == 1:
+                    continue
+            cleaned.append((l if l != "PERSON" else "PER", v2))
+
+        # Alt-span temizliği + aynı span için etiket önceliği (ORG > LOC > DATE > MISC > PER)
+        rank = {"ORG": 5, "LOC": 4, "DATE": 3, "EVENT": 3, "MISC": 2, "PER": 1}
+        by_span: Dict[str, Tuple[str, str]] = {}
+        for l, v in cleaned:
+            if any(self._is_subspan(v, ov) for _, ov in cleaned):
+                continue
+            sk = self._entity_span_key(v)
+            prev = by_span.get(sk)
+            if prev is None or rank.get(l, 0) > rank.get(prev[0], 0):
+                by_span[sk] = (l, v)
+        return list(by_span.values())
+
+    def _entity_span_key(self, value: str) -> str:
+        return re.sub(r"\s+", " ", (value or "").lower().strip())
+
+    def _is_subspan(self, a: str, b: str) -> bool:
+        """a, b'nin alt parçası mı? (iletişim ⊂ iletişim başkanlığı)"""
+        aa, bb = self._entity_span_key(a), self._entity_span_key(b)
+        if not aa or not bb or aa == bb:
+            return False
+        return aa in bb and len(aa) < len(bb)
+
+    def _merge_hybrid_entities(
+        self,
+        ai_ents: List[Tuple[str, str]],
+        rule_ents: List[Tuple[str, str]],
+    ) -> List[Tuple[str, str]]:
+        """
+        AI baskın hibrit: AI listesi omurga; kural yalnızca ORG/LOC/DATE/EVENT boşluk doldurur.
+        Kısa/yanlış parçalar uzun ifadeler lehine elenir.
+        """
+        merged: List[Tuple[str, str]] = []
+        seen_vals: List[str] = []
+
+        def _add(label: str, val: str, prefer_label: bool = False):
+            val = re.sub(r"\s+", " ", (val or "").strip())
+            if not val:
+                return
+            key = self._entity_span_key(val)
+            # Daha uzun span varken kısa olanı ekleme
+            for existing in seen_vals:
+                if key in existing and key != existing:
+                    return
+            # Yeni uzun span geldiyse kısa olanları çıkar
+            drop_idx = [
+                i for i, (l, v) in enumerate(merged)
+                if self._is_subspan(v, val)
+            ]
+            for i in reversed(drop_idx):
+                seen_vals.pop(i)
+                merged.pop(i)
+            # Aynı değer, etiket çatışması: AI etiketi kalsın
+            for i, (l, v) in enumerate(merged):
+                if self._entity_span_key(v) == key:
+                    if prefer_label and l != label:
+                        merged[i] = (label, val)
+                    return
+            seen_vals.append(key)
+            merged.append((label, val))
+
+        for label, val in ai_ents or []:
+            _add(label, val, prefer_label=True)
+
+        # AI baskın: kuraldan yalnızca kurum/yer/zaman/olay tamamlayıcı
+        rule_fill_labels = {"ORG", "LOC", "DATE", "EVENT"}
+        for label, val in rule_ents or []:
+            if not ai_ents:
+                _add(label, val, prefer_label=False)
+            elif label in rule_fill_labels:
+                _add(label, val, prefer_label=False)
+
+        if ai_ents and rule_ents:
+            self._last_fact_source = "hybrid"
+        elif ai_ents:
+            self._last_fact_source = "ai"
+        else:
+            self._last_fact_source = "rule"
+        return merged
+
+    def _resolve_core_entities(
+        self,
+        core_text: str,
+        ai_ents: Optional[List[Tuple[str, str]]] = None,
+    ) -> List[Tuple[str, str]]:
+        rule_ents = self._extract_named_entities(core_text)
+        if ai_ents:
+            return self._merge_hybrid_entities(ai_ents, rule_ents)
+        self._last_fact_source = "rule"
+        return rule_ents
 
     @staticmethod
     def _digits_to_float(raw: str) -> Optional[float]:
@@ -391,9 +712,93 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
             return round(n, 2) if n is not None else None
         return val.lower().strip()
 
-    def _dynamic_fact_consistency(self, core_text: str, target_text: str) -> Tuple[Optional[float], int, List[dict]]:
+    def _rule_entity_found(self, label: str, val: str, target_lower: str) -> bool:
+        """Kural tabanlı varlık var mı? (AI yokken / AI eksik bırakınca yedek)."""
+        val_lower = val.lower()
+        tokens = [t.lower() for t in re.findall(r"\w+", val, flags=re.UNICODE) if len(t) > 2]
+        content_tokens = [t for t in tokens if t not in self._FALSE_PERSON_TOKENS]
+        if not tokens:
+            found = val_lower in target_lower
+        else:
+            check = content_tokens or tokens
+            hits = sum(
+                1 for tok in check
+                if re.search(r"\b" + re.escape(tok) + r"\b", target_lower)
+            )
+            need = 2 if len(check) >= 2 else 1
+            found = hits >= need or val_lower in target_lower
+            if not found:
+                for tok in tokens:
+                    roots = {tok, tok.rstrip("sıiuü")}
+                    if tok.endswith(("i", "ı", "u", "ü")) and len(tok) > 4:
+                        roots.add(tok[:-1])
+                    for root in roots:
+                        syns = self._CONCEPT_SYNONYMS.get(root)
+                        if syns and any(s in target_lower for s in syns):
+                            if root in {"yeni", "eski", "ilgili", "genel"}:
+                                continue
+                            found = True
+                            break
+                    if found:
+                        break
+            if not found and label == "MISC":
+                pairs = (
+                    ("takip", "panel"),
+                    ("kriz", "masa"),
+                    ("dijital", "kriz"),
+                    ("yönlendirme", "panel"),
+                    ("bilgilendirme", "hat"),
+                    ("deprem", "hat"),
+                )
+                for a, b in pairs:
+                    if a in val_lower and b in val_lower and a in target_lower and b in target_lower:
+                        found = True
+                        break
+        if not found and label == "DATE":
+            if "hafta" in val_lower and re.search(
+                r"(?:geçen|gecen|geçtiğimiz|gectigimiz|bu)\s+hafta", target_lower
+            ):
+                found = True
+            elif re.search(r"\bay\b", val_lower) and re.search(
+                r"(?:geçen|gecen|geçtiğimiz|gectigimiz|bu)\s+ay\b", target_lower
+            ):
+                found = True
+            elif re.search(
+                r"(?:geçen|gecen|bu)\s+(?:pazartesi|salı|sali|çarşamba|carsamba|perşembe|persembe|cuma|cumartesi|pazar)",
+                val_lower,
+            ):
+                day = re.search(
+                    r"(pazartesi|salı|sali|çarşamba|carsamba|perşembe|persembe|cuma|cumartesi|pazar)",
+                    val_lower,
+                )
+                found = bool(day and day.group(1) in target_lower)
+            else:
+                for word, alts in (
+                    ("dün", ("dün", "dun")),
+                    ("bugün", ("bugün", "bugun", "bugün itibariyle", "bugun itibariyle")),
+                    ("yarın", ("yarın", "yarin")),
+                ):
+                    if word in val_lower or any(a in val_lower for a in alts):
+                        found = any(a in target_lower for a in alts)
+                        break
+        if not found and label == "ORG":
+            if "iletişim" in val_lower or "iletisim" in val_lower:
+                found = bool(re.search(r"iletişim\s+başkanlığ|iletisim\s+baskanlig", target_lower))
+            elif "valilik" in val_lower:
+                found = "valilik" in target_lower
+            elif "afad" in val_lower:
+                found = "afad" in target_lower
+        return bool(found)
+
+    def _dynamic_fact_consistency(
+        self,
+        core_text: str,
+        target_text: str,
+        core_entities: Optional[List[Tuple[str, str]]] = None,
+        ai_presence: Optional[Dict[str, bool]] = None,
+    ) -> Tuple[Optional[float], int, List[dict]]:
         nt_facts = self._extract_numeric_temporal_facts(core_text)
-        ents = self._extract_named_entities(core_text)
+        ents = core_entities if core_entities is not None else self._extract_named_entities(core_text)
         target_nt_facts = self._extract_numeric_temporal_facts(target_text)
         target_lower = target_text.lower()
 
@@ -404,8 +809,9 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
 
         total, matched = 0, 0
         details = []
+        used_ai_judge = False
 
-        # 1. Sayısal/Zamansal Olgu Kontrolü
+        # 1. Sayısal/Zamansal Olgu Kontrolü (kural — sayısal kesin)
         for label, val in nt_facts:
             total += 1
             norm_val = self._normalize_fact(label, val)
@@ -417,16 +823,29 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
             matched += int(found)
             details.append(self._fact_detail_row(label, val, bool(found)))
 
-        # 2. NER Kontrolü
+        # 2. NER / kavram / zaman — AI kararı baskın, yoksa kural
         for label, val in ents:
             total += 1
-            tokens = [t.lower() for t in re.findall(r"\w+", val) if len(t) > 2]
-            if not tokens:
-                found = val.lower() in target_lower
+            val_lower = val.lower().strip()
+            if ai_presence is not None and val_lower in ai_presence:
+                found = bool(ai_presence[val_lower])
+                used_ai_judge = True
             else:
-                found = any(re.search(r"\b" + re.escape(tok) + r"\b", target_lower) for tok in tokens)
+                found = self._rule_entity_found(label, val, target_lower)
             matched += int(found)
-            details.append(self._fact_detail_row(label, val, bool(found)))
+            row = self._fact_detail_row(label, val, bool(found))
+            if ai_presence is not None and val_lower in ai_presence:
+                row["decide"] = "ai"
+            else:
+                row["decide"] = "rule"
+            details.append(row)
+
+        if used_ai_judge:
+            # Kaynak: AI karar verdiyse hybrid-ai / ai
+            if self._last_fact_source == "rule":
+                self._last_fact_source = "ai"
+            elif self._last_fact_source == "hybrid":
+                self._last_fact_source = "hybrid"
 
         if total == 0:
             return None, 0, details
@@ -497,12 +916,23 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
         core: CoreMessage,
         transformed: TransformedMessage,
         cos_sim: float,
+        core_entities: Optional[List[Tuple[str, str]]] = None,
+        ai_presence: Optional[Dict[str, bool]] = None,
     ) -> CombinedAnalysisResult:
         """Tek platform analizi — eşikler ve karar mantığı aynı."""
         core_text = core.content
         target_text = transformed.transformed_content
 
-        fact_score, fact_total, fact_details = self._dynamic_fact_consistency(core_text, target_text)
+        fact_score, fact_total, fact_details = self._dynamic_fact_consistency(
+            core_text,
+            target_text,
+            core_entities=core_entities,
+            ai_presence=ai_presence,
+        )
+        # Kaynak bilgisini UI'ya taşı (ilk satıra meta değil; her satıra source)
+        src = getattr(self, "_last_fact_source", "rule")
+        for row in fact_details:
+            row.setdefault("source", src)
         fwd_nli = self._get_nli_probs(core_text, target_text)
         fwd_contra = fwd_nli.get("contradiction", 0.0)
 
@@ -557,10 +987,19 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
             ambiguity=self._ambiguity_analyzer.analyze(transformed),
         )
 
-    def _sync_analyze_pair(self, core: CoreMessage, transformed: TransformedMessage) -> CombinedAnalysisResult:
+    def _sync_analyze_pair(
+        self,
+        core: CoreMessage,
+        transformed: TransformedMessage,
+        core_entities: Optional[List[Tuple[str, str]]] = None,
+        ai_presence: Optional[Dict[str, bool]] = None,
+    ) -> CombinedAnalysisResult:
         self._load_models()
+        ents = self._resolve_core_entities(core.content, core_entities)
         cos_sim = self._get_cosine_sim(core.content, transformed.transformed_content)
-        return self._build_pair_result(core, transformed, cos_sim)
+        return self._build_pair_result(
+            core, transformed, cos_sim, core_entities=ents, ai_presence=ai_presence
+        )
 
     def _batch_cosine_sims(self, core_text: str, target_texts: List[str]) -> List[float]:
         """Tek encode çağrısıyla tüm platform benzerliklerini hesaplar (hız)."""
@@ -576,25 +1015,96 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
         return sims
 
     def _sync_analyze_all(
-        self, core: CoreMessage, transformed_list: List[TransformedMessage]
+        self,
+        core: CoreMessage,
+        transformed_list: List[TransformedMessage],
+        core_entities: Optional[List[Tuple[str, str]]] = None,
+        presence_by_channel: Optional[Dict[str, Dict[str, bool]]] = None,
     ) -> Tuple[List[CombinedAnalysisResult], DegradationChainResult]:
         """Tek iş parçacığında batch embedding + sıralı analiz (CPU'da daha hızlı)."""
         self.prewarm()
+        ents = self._resolve_core_entities(core.content, core_entities)
         target_texts = [t.transformed_content for t in transformed_list]
         sims = self._batch_cosine_sims(core.content, target_texts)
-        results = [
-            self._build_pair_result(core, transformed, sims[i])
-            for i, transformed in enumerate(transformed_list)
-        ]
+        presence_by_channel = presence_by_channel or {}
+        results = []
+        for i, transformed in enumerate(transformed_list):
+            ch_key = getattr(transformed.channel, "value", str(transformed.channel))
+            ai_pres = presence_by_channel.get(ch_key)
+            results.append(
+                self._build_pair_result(
+                    core,
+                    transformed,
+                    sims[i],
+                    core_entities=ents,
+                    ai_presence=ai_pres,
+                )
+            )
         degradation_result = self._degradation_analyzer.analyze_chain(core, transformed_list, analysis_results=results)
         return results, degradation_result
 
+    async def _fetch_ai_entities(self, core_text: str) -> List[Tuple[str, str]]:
+        """Gemini ile bir kez olgu çıkar; yoksa/hata → []."""
+        llm = self._llm_service
+        if llm is None or not hasattr(llm, "extract_core_facts"):
+            return []
+        try:
+            return await llm.extract_core_facts(core_text) or []
+        except Exception as e:
+            print(f"⚠️ [ANALİZ] AI olgu çıkarma atlandı: {e}")
+            return []
+
+    async def _fetch_ai_presence(
+        self,
+        facts: List[Tuple[str, str]],
+        transformed_list: List[TransformedMessage],
+    ) -> Dict[str, Dict[str, bool]]:
+        """Her platform için AI var/yok kararı (AI baskın)."""
+        llm = self._llm_service
+        if not facts or llm is None:
+            return {}
+        platforms = [
+            (getattr(t.channel, "value", str(t.channel)), t.transformed_content)
+            for t in transformed_list
+        ]
+        try:
+            if hasattr(llm, "judge_facts_batch"):
+                return await llm.judge_facts_batch(facts, platforms) or {}
+            if hasattr(llm, "judge_facts_presence"):
+                out: Dict[str, Dict[str, bool]] = {}
+                for pid, text in platforms:
+                    decided = await llm.judge_facts_presence(facts, text)
+                    if decided:
+                        out[pid] = decided
+                return out
+        except Exception as e:
+            print(f"⚠️ [ANALİZ] AI olgu karşılaştırma atlandı: {e}")
+        return {}
+
     async def analyze_pair(self, core: CoreMessage, transformed: TransformedMessage) -> CombinedAnalysisResult:
         """Çekirdek mesaj ile tek bir mecradan gelen mesajı kıyaslar (Non-blocking)."""
-        return await asyncio.to_thread(self._sync_analyze_pair, core, transformed)
+        ai_ents = await self._fetch_ai_entities(core.content)
+        ents = await asyncio.to_thread(self._resolve_core_entities, core.content, ai_ents)
+        presence = None
+        if ents and self._llm_service is not None and hasattr(self._llm_service, "judge_facts_presence"):
+            try:
+                presence = await self._llm_service.judge_facts_presence(
+                    ents, transformed.transformed_content
+                )
+            except Exception as e:
+                print(f"⚠️ [ANALİZ] AI pair-judge atlandı: {e}")
+                presence = None
+        return await asyncio.to_thread(self._sync_analyze_pair, core, transformed, ai_ents, presence)
 
     async def analyze_all(
         self, core: CoreMessage, transformed_list: List[TransformedMessage]
     ) -> Tuple[List[CombinedAnalysisResult], DegradationChainResult]:
-        """Tüm mecraları tek batch'te analiz eder (embedding paylaşımı + model thrash yok)."""
-        return await asyncio.to_thread(self._sync_analyze_all, core, transformed_list)
+        """AI baskın hibrit: 1× olgu çıkarma + platform başına AI var/yok; kural yedek."""
+        ai_ents = await self._fetch_ai_entities(core.content)
+        ents = await asyncio.to_thread(self._resolve_core_entities, core.content, ai_ents)
+        presence_map = await self._fetch_ai_presence(ents, transformed_list)
+        if presence_map:
+            print(f"[ANALİZ] AI var/yok: {len(presence_map)} platform")
+        return await asyncio.to_thread(
+            self._sync_analyze_all, core, transformed_list, ai_ents, presence_map
+        )
