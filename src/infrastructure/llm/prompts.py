@@ -30,9 +30,11 @@ Sadece bariz yazım hatalarını minimum müdahale ile düzelt:
 4. Sayı / tarih / özel isim DEĞİŞTİRME.
 5. Cümleyi yeniden yazma, kısaltma, uzatma.
 6. Meta yorum, markdown, İngilizce YASAK.
+7. "Düzenlenmiş metin:", "Düzeltilmiş metin:", "İşte düzeltilmiş hali:" gibi etiket/başlık ASLA yazma.
 
 # ÇIKTI
-Sadece düzeltilmiş düz metin. Şüphe varsa orijinali koru.
+Yalnızca düzeltilmiş çekirdek mesajın kendisi (düz metin).
+Etiket, açıklama, tırnak veya markdown KULLANMA. Şüphe varsa orijinali koru.
 """
 
 # ============================================================
@@ -335,11 +337,12 @@ DAĞITIM YERLERİNE
 
 Bilgilerinizi ve gereğini arz/rica ederim.
 
-Ahmet Yılmaz
-Vali a. / Genel Sekreter
+[Ad Soyad]
+[Unvan]
 
 # SINIRLAMALAR
 - Uzunluk: 200-300 kelime.
+- Sonuna Vali, Müdür vb. rastgele unvan/isim UYDURMA; yalnızca [Ad Soyad] ve [Unvan] bırak.
 - Sadece resmi yazıyı üret, başına veya sonuna başka hiçbir şey yazma.
 """
     )

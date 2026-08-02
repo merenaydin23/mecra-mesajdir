@@ -20,10 +20,17 @@ def _resolve_llm_config():
         model = os.getenv("INTERNAL_LLM_MODEL_NAME", "qwen-397b")
         provider = "kurumsal"
     else:
-        api_key = os.getenv("GROQ_API_KEY") or os.getenv("LLM_API_KEY", "")
-        base_url = os.getenv("EXTERNAL_LLM_BASE_URL", "https://api.groq.com/openai/v1")
-        model = os.getenv("EXTERNAL_LLM_MODEL_NAME", "llama-3.3-70b-versatile")
-        provider = "groq"
+        api_key = (
+            os.getenv("GEMINI_API_KEY")
+            or os.getenv("GOOGLE_API_KEY")
+            or os.getenv("LLM_API_KEY", "")
+        )
+        base_url = os.getenv(
+            "EXTERNAL_LLM_BASE_URL",
+            "https://generativelanguage.googleapis.com/v1beta/openai/",
+        )
+        model = os.getenv("EXTERNAL_LLM_MODEL_NAME", "gemini-2.5-flash")
+        provider = "gemini"
 
     return mode, provider, api_key, base_url, model
 
