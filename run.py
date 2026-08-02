@@ -48,7 +48,10 @@ async def main():
     llm_service = LLMMessageTransformerService()
     transform_use_case = TransformMessageUseCase(llm_service=llm_service)
 
-    transformed_messages = await transform_use_case.execute_all(content=GIRILEN_MESAJ)
+    corrected_core, transformed_messages = await transform_use_case.execute_all(content=GIRILEN_MESAJ)
+    core_message = CoreMessage(content=corrected_core, author="Mecra Kullanıcısı")
+    if corrected_core != GIRILEN_MESAJ:
+        print(f"✍️ [YAZIM DÜZELTME] {corrected_core}\n")
 
     for i, msg in enumerate(transformed_messages, 1):
         print(f"--------------------------------------------------")

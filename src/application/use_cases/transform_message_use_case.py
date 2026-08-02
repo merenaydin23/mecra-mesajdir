@@ -4,7 +4,7 @@ Mesaj Dönüştürme Use Case (Application Katmanı)
 Çekirdek mesajın farklı mecralara dönüştürülmesini orkestre eden use case.
 """
 
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from src.domain.entities.channel import ChannelType
 from src.domain.entities.message import CoreMessage, TransformedMessage
@@ -21,12 +21,29 @@ class TransformMessageUseCase:
         self, content: str, channel: ChannelType, author: Optional[str] = None
     ) -> TransformedMessage:
         """Tek bir mecraya dönüştürme çalıştırır."""
-        core_message = CoreMessage(content=content, author=author)
+        corrected = content
+        if hasattr(self._llm_service, "proofread_core_message"):
+            corrected = await self._llm_service.proofread_core_message(content)
+        core_message = CoreMessage(content=corrected, author=author)
         return await self._llm_service.transform_to_channel(core_message, channel)
 
     async def execute_all(
         self, content: str, author: Optional[str] = None
-    ) -> List[TransformedMessage]:
-        """Tüm mecralara dönüştürme çalıştırır."""
-        core_message = CoreMessage(content=content, author=author)
-        return await self._llm_service.transform_to_all_channels(core_message)
+    ) -> Tuple[str, List[TransformedMessage]]:
+        """
+        Yazım düzeltmesi + tüm mecralara dönüşüm.
+        Returns: (düzeltilmiş_çekirdek, dönüştürülmüş_mesajlar)
+        """
+        corrected = content.strip()
+        if hasattr(self._llm_service, "proofread_core_message"):
+            corrected = await self._llm_service.proofread_core_message(content)
+
+        core_message = CoreMessage(content=corrected, author=author)
+        # transform_to_all_channels içinde ikinci kez proofread olmasın diye
+        # doğrudan kanal dönüşümlerini çağır
+        if hasattr(self._llm_service, "transform_channels_only"):
+            results = await self._llm_service.transform_channels_only(core_message)
+        else:
+            # Geriye uyumluluk: servis proofread'i tekrar yapabilir
+            results = await self._llm_service.transform_to_all_channels(core_message)
+        return corrected, list(results)

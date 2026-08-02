@@ -8,12 +8,37 @@ import os
 from dataclasses import dataclass
 
 
+def _resolve_llm_config():
+    """LLM_MODE'a göre aktif API key / base URL / model seçer."""
+    mode = (os.getenv("LLM_MODE") or "external").strip().lower()
+    if mode not in ("external", "internal"):
+        mode = "external"
+
+    if mode == "internal":
+        api_key = os.getenv("INTERNAL_LLM_API_KEY") or os.getenv("LLM_API_KEY", "")
+        base_url = os.getenv("INTERNAL_LLM_BASE_URL", "https://llmstat.iletisim.gov.tr/v1")
+        model = os.getenv("INTERNAL_LLM_MODEL_NAME", "qwen-397b")
+        provider = "kurumsal"
+    else:
+        api_key = os.getenv("GROQ_API_KEY") or os.getenv("LLM_API_KEY", "")
+        base_url = os.getenv("EXTERNAL_LLM_BASE_URL", "https://api.groq.com/openai/v1")
+        model = os.getenv("EXTERNAL_LLM_MODEL_NAME", "llama-3.3-70b-versatile")
+        provider = "groq"
+
+    return mode, provider, api_key, base_url, model
+
+
+_mode, _provider, _api_key, _base_url, _model = _resolve_llm_config()
+
+
 @dataclass
 class Settings:
     # LLM Konfigürasyonu
-    LLM_API_KEY: str = os.getenv("LLM_API_KEY", "")
-    LLM_BASE_URL: str = os.getenv("LLM_BASE_URL", "https://llmstat.iletisim.gov.tr/v1")
-    LLM_MODEL_NAME: str = os.getenv("LLM_MODEL_NAME", "qwen-397b")
+    LLM_MODE: str = _mode
+    LLM_PROVIDER: str = _provider
+    LLM_API_KEY: str = _api_key
+    LLM_BASE_URL: str = _base_url
+    LLM_MODEL_NAME: str = _model
 
     # Microsoft SQL Server (MSSQL) Konfigürasyonu
     MSSQL_DRIVER: str = os.getenv("MSSQL_DRIVER", "{ODBC Driver 17 for SQL Server}")
@@ -32,5 +57,6 @@ class Settings:
     # Belirsizlik Analizi Konfigürasyonu
     AMBIGUITY_LOW_THRESHOLD: float = float(os.getenv("AMBIGUITY_LOW_THRESHOLD", "0.35"))
     AMBIGUITY_HIGH_THRESHOLD: float = float(os.getenv("AMBIGUITY_HIGH_THRESHOLD", "0.65"))
+
 
 settings = Settings()
