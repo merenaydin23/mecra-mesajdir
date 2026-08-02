@@ -22,81 +22,77 @@
   </script>
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/lucide@0.263.1/dist/umd/lucide.min.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js" crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="styles.css?v=evrak3">
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.1/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="styles.css?v=video-pdf1">
 </head>
 <body class="text-[#0F172A] flex flex-col min-h-screen relative antialiased selection:bg-[#00A3A6] selection:text-white">
 
   <!-- Kurumsal üst şerit -->
   <div class="institutional-ribbon no-print">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1.5 flex flex-wrap items-center justify-between gap-2">
-      <span><strong>T.C. Cumhurbaşkanlığı İletişim Başkanlığı</strong> · Bilgi İşlem Dairesi Başkanlığı</span>
-      <span class="opacity-80">Resmi Kurumsal İletişim Analiz Platformu · 2026</span>
+    <div class="ribbon-inner">
+      <span class="ribbon-left">T.C. Cumhurbaşkanlığı İletişim Başkanlığı</span>
+      <span class="ribbon-right">Bilgi İşlem Dairesi Başkanlığı · 2026</span>
     </div>
   </div>
 
   <!-- ÜST NAVİGASYON -->
-  <header class="sticky top-0 z-40 corp-header backdrop-blur-md no-print">
-    <div class="w-full px-3 sm:px-6 lg:px-8 h-[4.5rem] flex items-center justify-between gap-3">
-      
-      <div class="flex items-center space-x-3 shrink-0">
-        <div class="logo-seal">
-          <img src="assets/cib-logo.png" alt="T.C. İletişim Başkanlığı Logo">
-        </div>
-        <div class="border-l-2 border-[#00A3A6]/40 pl-3 py-0.5 space-y-0.5 hidden sm:block">
-          <p class="brand-eyebrow">T.C. İletişim Başkanlığı</p>
-          <div class="flex items-center gap-2">
-            <h1 class="text-lg font-black text-[#0F172A] tracking-tight">Mecra Mesajdır</h1>
-            <span class="px-2 py-0.5 rounded text-[9px] font-black bg-[#0B1F33] text-white tracking-widest uppercase">RESMİ PLATFORM</span>
+  <header class="corp-header no-print">
+    <div class="corp-header-inner">
+      <div class="corp-header-top">
+        <div class="corp-brand">
+          <div class="logo-seal">
+            <img src="assets/cib-logo.png" alt="T.C. İletişim Başkanlığı Logo">
           </div>
-          <p class="text-[11px] text-slate-500 font-semibold tracking-wide">Çoklu Mecra Dönüşüm & NLP Analiz Sistemi</p>
+          <div class="corp-brand-text">
+            <p class="brand-eyebrow">Resmi kurumsal iletişim analiz platformu</p>
+            <div class="corp-brand-title-row">
+              <h1>Mecra Mesajdır</h1>
+              <span class="corp-badge">Resmi</span>
+            </div>
+            <p class="corp-brand-sub">Çoklu mecra dönüşüm ve NLP analiz sistemi</p>
+          </div>
+        </div>
+
+        <div class="corp-actions">
+          <button id="btn-header-history" onclick="openHistoryModal()" class="corp-btn corp-btn-secondary" type="button" title="Geçmiş">
+            <i data-lucide="clock" class="w-4 h-4"></i>
+            <span>Geçmiş</span>
+          </button>
+          <button id="btn-pdf-download" class="corp-btn corp-btn-primary" type="button" title="PDF Rapor">
+            <i data-lucide="file-down" class="w-4 h-4"></i>
+            <span>PDF</span>
+          </button>
         </div>
       </div>
 
-      <!-- Desktop Nav -->
-      <nav class="hidden lg:flex items-center p-1 bg-slate-100/90 rounded-xl border border-slate-200/90 shadow-inner space-x-0.5 shrink">
-        <button data-tab="dashboard" class="nav-tab-btn px-2.5 py-2 rounded-lg text-[11px] font-bold transition-all duration-200 flex items-center space-x-1.5 bg-white text-[#00A3A6] shadow-xs border border-slate-200/80 whitespace-nowrap">
+      <nav class="corp-nav hidden lg:flex" aria-label="Ana menü">
+        <button data-tab="dashboard" class="nav-tab-btn active" type="button">
           <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 shrink-0"></i>
           <span>Dönüştürücü</span>
         </button>
-        <button data-tab="analytics" class="nav-tab-btn px-2.5 py-2 rounded-lg text-[11px] font-semibold transition-all duration-200 text-slate-600 hover:text-[#0F172A] hover:bg-white/70 flex items-center space-x-1.5 border border-transparent whitespace-nowrap">
+        <button data-tab="analytics" class="nav-tab-btn" type="button">
           <i data-lucide="bar-chart-3" class="w-3.5 h-3.5 shrink-0"></i>
           <span>Analiz</span>
         </button>
-        <button data-tab="history" class="nav-tab-btn px-2.5 py-2 rounded-lg text-[11px] font-semibold transition-all duration-200 text-slate-600 hover:text-[#0F172A] hover:bg-white/70 flex items-center space-x-1.5 border border-transparent whitespace-nowrap">
+        <button data-tab="history" class="nav-tab-btn" type="button">
           <i data-lucide="history" class="w-3.5 h-3.5 shrink-0"></i>
           <span>Geçmiş</span>
         </button>
-        <button data-tab="lab" class="nav-tab-btn px-2.5 py-2 rounded-lg text-[11px] font-semibold transition-all duration-200 text-slate-600 hover:text-[#0F172A] hover:bg-white/70 flex items-center space-x-1.5 border border-transparent whitespace-nowrap">
-          <i data-lucide="beaker" class="w-3.5 h-3.5 shrink-0"></i>
-          <span>Doğruluk Lab</span>
-        </button>
-        <button data-tab="official-doc" class="nav-tab-btn px-2.5 py-2 rounded-lg text-[11px] font-semibold transition-all duration-200 text-slate-600 hover:text-[#0F172A] hover:bg-white/70 flex items-center space-x-1.5 border border-transparent whitespace-nowrap">
+        <button data-tab="official-doc" class="nav-tab-btn" type="button">
           <i data-lucide="file-text" class="w-3.5 h-3.5 shrink-0 text-red-600"></i>
           <span>Kurumsal Evrak</span>
         </button>
-        <button data-tab="theory" class="nav-tab-btn px-2.5 py-2 rounded-lg text-[11px] font-semibold transition-all duration-200 text-slate-600 hover:text-[#0F172A] hover:bg-white/70 flex items-center space-x-1.5 border border-transparent whitespace-nowrap">
+        <button data-tab="theory" class="nav-tab-btn" type="button">
           <i data-lucide="book-open" class="w-3.5 h-3.5 shrink-0"></i>
           <span>Kuram</span>
         </button>
       </nav>
-
-      <div class="flex items-center space-x-2 shrink-0">
-        <button id="btn-header-history" onclick="openHistoryModal()" class="px-3 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200/90 transition-all flex items-center space-x-1.5 shadow-2xs">
-          <i data-lucide="clock" class="w-4 h-4 text-[#00A3A6]"></i>
-          <span class="hidden sm:inline">Hızlı Geçmiş</span>
-        </button>
-        <button id="btn-pdf-download" class="px-3 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#008385] to-[#00A3A6] hover:from-[#006E70] hover:to-[#008385] transition-all shadow-md flex items-center space-x-1.5">
-          <i data-lucide="file-down" class="w-4 h-4"></i>
-          <span class="hidden sm:inline">PDF</span>
-        </button>
-      </div>
     </div>
   </header>
 
   <!-- Mobil Navigasyon -->
-  <nav class="mobile-nav-tabs lg:hidden sticky top-20 z-30 no-print">
+  <nav class="mobile-nav-tabs lg:hidden no-print">
     <button data-tab="dashboard" class="nav-tab-btn px-3 py-2 rounded-lg text-xs font-bold bg-white text-[#00A3A6] shadow-xs border border-slate-200/80 flex items-center space-x-1.5">
       <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i><span>Dönüştürücü</span>
     </button>
@@ -105,9 +101,6 @@
     </button>
     <button data-tab="history" class="nav-tab-btn px-3 py-2 rounded-lg text-xs font-semibold text-slate-600 border border-transparent flex items-center space-x-1.5">
       <i data-lucide="history" class="w-3.5 h-3.5"></i><span>Geçmiş</span>
-    </button>
-    <button data-tab="lab" class="nav-tab-btn px-3 py-2 rounded-lg text-xs font-semibold text-slate-600 border border-transparent flex items-center space-x-1.5">
-      <i data-lucide="beaker" class="w-3.5 h-3.5"></i><span>Lab</span>
     </button>
     <button data-tab="official-doc" class="nav-tab-btn px-3 py-2 rounded-lg text-xs font-semibold text-slate-600 border border-transparent flex items-center space-x-1.5">
       <i data-lucide="file-text" class="w-3.5 h-3.5"></i><span>Evrak</span>
@@ -145,7 +138,7 @@
             <label for="core-message-input" class="block text-[11px] font-bold uppercase tracking-wider text-teal-100/80 mb-2">Çekirdek Mesaj</label>
             <textarea id="core-message-input" rows="4" 
               class="w-full p-4 rounded-xl border border-white/20 bg-white text-slate-800 placeholder-slate-400 text-sm shadow-inner outline-none focus:ring-2 focus:ring-white/50 transition-all resize-y font-sans"
-              placeholder="Örn: Yoğun kar yağışı nedeniyle Elazığ genelinde yarın tüm okullar 1 gün süreyle tatil edilmiştir."></textarea>
+              placeholder="Çekirdek mesajınızı buraya yazın…"></textarea>
           </div>
 
           <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
@@ -230,8 +223,8 @@
             <p class="text-slate-600 text-xs mt-1 leading-relaxed">“Takip edin”, “paylaşın” gibi net bir çağrı var mı?</p>
           </div>
           <div class="bg-white rounded-xl p-3 border border-violet-100">
-            <p class="font-bold text-violet-800">Mesaj net mi?</p>
-            <p class="text-slate-600 text-xs mt-1 leading-relaxed">Belirsiz, kaçamak, “belki / değerlendiriliyor” gibi ifadeler var mı?</p>
+            <p class="font-bold text-violet-800">Anlatım netliği</p>
+            <p class="text-slate-600 text-xs mt-1 leading-relaxed">Mecralarda kaçamak / belirsiz ifade oranı; yüksek sayı = netlik sağlanan platform sayısıdır.</p>
           </div>
         </div>
       </div>
@@ -254,9 +247,10 @@
           <p id="kpi-cta-hint" class="text-xs text-slate-500 leading-relaxed">Kaç metinde “yapın / takip edin” gibi net çağrı var?</p>
         </div>
         <div class="corporate-card p-5 space-y-2">
-          <div class="text-sm font-bold text-slate-700">Anlatım net mi?</div>
-          <div id="kpi-high-ambiguity" class="text-3xl font-black text-violet-600">—</div>
-          <p id="kpi-amb-hint" class="text-xs text-slate-500 leading-relaxed">Kaç metin net değil, kaçamak görünüyor?</p>
+          <div class="text-sm font-bold text-slate-700">Anlatım netliği</div>
+          <div id="kpi-high-ambiguity" class="text-3xl font-black text-[#008385]">—</div>
+          <p id="kpi-amb-sub" class="text-[11px] font-semibold text-slate-500 tracking-wide uppercase">Netlik sağlanan mecra</p>
+          <p id="kpi-amb-hint" class="text-xs text-slate-500 leading-relaxed">Belirsizlik düzeyi yüksek mecra sayısı ayrıca değerlendirilir.</p>
         </div>
       </div>
 
@@ -318,8 +312,9 @@
         <div class="lg:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-5">
           <div class="corporate-card p-5 space-y-3 flex flex-col justify-between">
             <div class="border-b border-slate-100 pb-2">
-              <h4 class="font-bold text-sm text-slate-800">Platformlara göre benzerlik</h4>
-              <p class="text-xs text-slate-500 mt-0.5">Yıldız gibi grafik: dışa doğru = daha iyi</p>
+              <p class="brand-eyebrow mb-1">Mecra karşılaştırması</p>
+              <h4 class="font-bold text-sm text-slate-800">Anlamsal benzerlik — radar analizi</h4>
+              <p class="text-xs text-slate-500 mt-0.5 leading-relaxed">Çekirdek mesaj ile her mecra çıktısının embedding tabanlı benzerlik oranı. Merkezden dışa doğru artış, anlam korunumunun güçlendiğini gösterir.</p>
             </div>
             <div class="h-[240px] relative">
               <canvas id="radarChart"></canvas>
@@ -327,8 +322,9 @@
           </div>
           <div class="corporate-card p-5 space-y-3 flex flex-col justify-between">
             <div class="border-b border-slate-100 pb-2">
-              <h4 class="font-bold text-sm text-slate-800">Anlam korunma yüzdesi</h4>
-              <p class="text-xs text-slate-500 mt-0.5">Çubuk ne kadar uzunsa mesaj o kadar korunmuş</p>
+              <p class="brand-eyebrow mb-1">Mecra karşılaştırması</p>
+              <h4 class="font-bold text-sm text-slate-800">Anlam korunma oranı — çubuk analizi</h4>
+              <p class="text-xs text-slate-500 mt-0.5 leading-relaxed">Her mecra için çekirdek mesaja göre anlamsal benzerlik yüzdesi. Çubuk yüksekliği arttıkça ilgili mecrada anlam korunumu güçlenir.</p>
             </div>
             <div class="h-[240px] relative">
               <canvas id="barChart"></canvas>
@@ -410,7 +406,7 @@
             <div>
               <p class="brand-eyebrow mb-1">Kurumsal Arşiv</p>
               <h2 class="text-2xl font-extrabold text-[#0F172A] tracking-tight">Geçmiş Analizler & Benchmark Kayıtları</h2>
-              <p class="text-sm text-slate-600 mt-1">Resmi analiz oturumlarını inceleyin; detayı açın veya laboratuvara yükleyin.</p>
+              <p class="text-sm text-slate-600 mt-1">Resmi analiz oturumlarını inceleyin ve detayları görüntüleyin.</p>
             </div>
           </div>
           <button onclick="loadHistoryPage()" class="btn-primary px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shrink-0">
@@ -454,101 +450,36 @@
     </div>
 
     <!-- =================================================================== -->
-    <!-- 4. DOĞRULUK LAB -->
-    <!-- =================================================================== -->
-    <div id="page-lab" class="tab-page hidden space-y-8">
-
-      <section class="corporate-card p-6 sm:p-8 space-y-5">
-        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div class="flex items-start gap-3 space-y-0">
-            <div class="logo-seal shrink-0">
-              <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/%C4%B0leti%C5%9Fim_Ba%C5%9Fkanl%C4%B1%C4%9F%C4%B1_logo.svg/1280px-%C4%B0leti%C5%9Fim_Ba%C5%9Fkanl%C4%B1%C4%9F%C4%B1_logo.svg.png" alt="" class="!h-10">
-            </div>
-            <div class="space-y-2">
-              <p class="brand-eyebrow">Kalite Güvence Birimi</p>
-              <h2 class="text-2xl font-extrabold text-[#0F172A] tracking-tight">Doğruluk Laboratuvarı</h2>
-              <p class="text-sm text-slate-600 max-w-2xl">
-                Altın standart test senaryoları ile canlı NLP çıktıları kurumsal kalite ölçütlerine göre kıyaslanır.
-                Sonuçlar resmi arşive kaydedilir.
-              </p>
-            </div>
-          </div>
-          <button id="btn-run-benchmark" onclick="runBenchmarkLab()" class="btn-primary px-6 py-3 rounded-xl text-sm font-bold flex items-center gap-2 shadow-md shrink-0">
-            <i data-lucide="play" class="w-4 h-4"></i>
-            <span>5 Senaryoyu Çalıştır</span>
-          </button>
-        </div>
-
-        <div id="lab-score-cards" class="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
-            <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Genel Doğruluk</div>
-            <div id="lab-overall" class="text-3xl font-black text-[#008385] mt-1">—</div>
-          </div>
-          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
-            <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Not</div>
-            <div id="lab-grade" class="text-lg font-black text-slate-800 mt-2">—</div>
-          </div>
-          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
-            <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Geçen Kontrol</div>
-            <div id="lab-passed" class="text-2xl font-black text-emerald-600 mt-1">—</div>
-          </div>
-          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
-            <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Bozulma Zinciri</div>
-            <div id="lab-mmd" class="text-lg font-black text-slate-800 mt-2">—</div>
-          </div>
-        </div>
-        <p id="lab-summary" class="text-sm text-slate-600 italic">Henüz benchmark çalıştırılmadı.</p>
-      </section>
-
-      <section class="space-y-4">
-        <h3 class="text-lg font-bold text-[#0F172A] flex items-center gap-2">
-          <i data-lucide="check-square" class="w-5 h-5 text-[#00A3A6]"></i>
-          <span>Senaryo Bazlı Kıyas Tablosu</span>
-        </h3>
-        <div id="lab-scenario-results" class="space-y-4">
-          <div class="corporate-card p-8 text-center text-slate-400 text-sm">
-            Benchmark sonuçları burada görünecek. Yukarıdaki butona bas.
-          </div>
-        </div>
-      </section>
-
-      <section class="corporate-card p-6 space-y-4">
-        <div class="flex items-center justify-between">
-          <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-            <i data-lucide="database" class="w-4 h-4 text-[#00A3A6]"></i>
-            <span>Sunucu Arama Geçmişi (Analiz + Benchmark)</span>
-          </h3>
-          <button onclick="loadServerHistory()" class="text-xs font-bold text-[#00A3A6] hover:underline">Yenile</button>
-        </div>
-        <div id="lab-server-history" class="space-y-2 max-h-80 overflow-y-auto">
-          <p class="text-xs text-slate-400 italic">Geçmiş yükleniyor...</p>
-        </div>
-        <div id="lab-history-detail" class="hidden border-t border-slate-100 pt-4 space-y-3"></div>
-      </section>
-    </div>
-
-    <!-- =================================================================== -->
-    <!-- 5. KURUMSAL EVRAK -->
+    <!-- KURUMSAL EVRAK -->
     <!-- =================================================================== -->
     <div id="page-official-doc" class="tab-page hidden space-y-5">
 
       <section class="evrak-page-header no-print">
-        <div class="evrak-header-row">
+        <div class="evrak-header-main">
           <div class="evrak-header-brand">
             <div class="evrak-logo-seal">
               <img src="assets/cib-logo.png" alt="T.C. İletişim Başkanlığı">
             </div>
             <div class="evrak-header-text">
-              <p class="brand-eyebrow">T.C. Cumhurbaşkanlığı İletişim Başkanlığı</p>
-              <h2>Kurumsal Evrak ve PDF</h2>
-              <p class="evrak-header-desc">Dönüştürülmüş mecra metnini resmi belge formatında önizleyin, kopyalayın veya yazdırın.</p>
+              <p class="evrak-kicker">T.C. Cumhurbaşkanlığı İletişim Başkanlığı</p>
+              <h2>Kurumsal Evrak</h2>
+              <p class="evrak-header-desc">
+                Dönüştürülmüş mecra metninin resmi belge önizlemesi, kopyalama ve yazdırma işlemleri.
+              </p>
             </div>
           </div>
-          <div class="evrak-header-actions">
-            <button onclick="switchToTab('dashboard')" type="button" class="evrak-btn evrak-btn-ghost">
-              <i data-lucide="arrow-left" class="w-4 h-4"></i>
-              <span>Dönüştürücüye Dön</span>
-            </button>
+          <div class="evrak-header-meta">
+            <span class="evrak-meta-item">Belge modülü</span>
+            <span class="evrak-meta-dot" aria-hidden="true"></span>
+            <span class="evrak-meta-item">PDF çıktı</span>
+          </div>
+        </div>
+        <div class="evrak-header-actions" role="toolbar" aria-label="Evrak işlemleri">
+          <button onclick="switchToTab('dashboard')" type="button" class="evrak-btn evrak-btn-ghost">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            <span>Dönüştürücü</span>
+          </button>
+          <div class="evrak-actions-group">
             <button onclick="copyPressReleaseDraft()" type="button" class="evrak-btn evrak-btn-secondary">
               <i data-lucide="copy" class="w-4 h-4"></i>
               <span>Kopyala</span>
@@ -578,6 +509,8 @@
         <span id="official-doc-seriousness-badge" class="evrak-badge">Resmiyet Seviyesi: %95 (Basın Müşavirliği)</span>
       </section>
 
+      <div id="official-video-tools" class="hidden no-print max-w-[800px] mx-auto w-full"></div>
+
       <div class="evrak-paper-stage">
         <div id="press-release-paper" class="bg-white w-full max-w-[800px] p-8 md:p-14 shadow-2xl rounded-sm border border-slate-300 text-slate-900 font-serif relative">
           <img src="assets/cib-logo.png" alt="" class="document-watermark">
@@ -606,65 +539,69 @@
     </div>
 
     <!-- =================================================================== -->
-    <!-- 6. KURAM -->
+    <!-- KURAM -->
     <!-- =================================================================== -->
-    <div id="page-theory" class="tab-page hidden space-y-10 max-w-4xl mx-auto py-4">
-      
-      <div class="text-center space-y-4">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/%C4%B0leti%C5%9Fim_Ba%C5%9Fkanl%C4%B1%C4%9F%C4%B1_logo.svg/1280px-%C4%B0leti%C5%9Fim_Ba%C5%9Fkanl%C4%B1%C4%9F%C4%B1_logo.svg.png"
-             alt="T.C. İletişim Başkanlığı" class="h-16 w-auto mx-auto object-contain">
-        <p class="brand-eyebrow justify-center">Kuramsal Çerçeve · T.C. İletişim Başkanlığı</p>
-        <h2 class="text-3xl sm:text-4xl font-extrabold text-[#0F172A] tracking-tight">"The Medium is the Message"</h2>
-        <p class="text-slate-600 text-base max-w-2xl mx-auto">
-          Marshall McLuhan'ın 1964 yılında ortaya koyduğu kuramın yapay zekâ ve büyük dil modelleri (LLM) ile sayısallaştırılması.
+    <div id="page-theory" class="tab-page hidden space-y-6 max-w-3xl mx-auto py-2">
+      <header class="space-y-2 border-b border-slate-200 pb-5">
+        <p class="brand-eyebrow">Kuramsal çerçeve · T.C. İletişim Başkanlığı</p>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">Kuram</h2>
+        <p class="text-lg font-semibold text-[#008385]">“The medium is the message.”</p>
+        <p class="text-slate-600 text-sm sm:text-base leading-relaxed">
+          Marshall McLuhan’ın yaklaşımı ve bunun <em>Mecra Mesajdır</em> platformunda nasıl uygulandığı.
         </p>
-      </div>
+      </header>
 
-      <div class="corporate-card p-8 space-y-6 bg-white/95 leading-relaxed text-slate-700">
-        <h3 class="text-xl font-bold text-[#0F172A] border-b border-slate-200 pb-3">
-          1. Kuramsal Arka Plan: Marshall McLuhan ve Mecra Yaklaşımı
-        </h3>
-        
-        <p>
-          Kanadalı iletişim kuramcısı <strong>Marshall McLuhan</strong>, 1964 yılında yayımladığı <em>"Understanding Media: The Extensions of Man"</em> adlı eserinde iletişim dünyasını sarsan ünlü önermesini sundu: <strong>"Mecra Mesajdır" (The Medium is the Message)</strong>.
-        </p>
+      <article class="corporate-card p-6 sm:p-7 space-y-7 leading-relaxed text-slate-700 text-[15px]">
+        <section class="space-y-3">
+          <h3 class="text-base font-bold text-[#0F172A] border-b border-slate-200 pb-2">McLuhan ne diyor?</h3>
+          <p>
+            Aynı olay farklı kanallarda anlatıldığında, değişen yalnızca kelimeler değildir.
+            <strong>Kanalın kendisi</strong> (basın, X, WhatsApp, resmi yazı…) okuyucunun beklentisini,
+            hızını ve dili şekillendirir. McLuhan buna kısaca şunu der: asıl etki çoğu zaman
+            <strong>mecradadır</strong>; içerik o etkinin peşinden gelir.
+          </p>
+        </section>
 
-        <p>
-          McLuhan'a göre bir iletişimin içeriği kadar, hatta içerikten daha fazla, o iletinin aktarıldığı <strong>mecranın yapısı, kanalları ve teknik sınırlılıkları</strong> insan algısını ve mesajın toplumsal etkisini belirler.
-        </p>
+        <section class="space-y-3">
+          <h3 class="text-base font-bold text-[#0F172A] border-b border-slate-200 pb-2">Klasik örnek → bizim örnek</h3>
+          <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm space-y-2">
+            <p class="m-0"><strong>McLuhan’ın ampul örneği:</strong> Ampulün “haber metni” yoktur; ama geceyi gündüze çevirerek hayatı değiştirir. Mesajı, yarattığı düzendir.</p>
+            <p class="m-0"><strong>Bizim karşılığımız:</strong> Tek bir çekirdek not (ör. dijital kriz masası duyurusu) yazarsınız. Platform bunu basın açıklaması, X gönderisi, LinkedIn metni veya WhatsApp zinciri olarak yeniden üretir. Haberin özü benzer kalabilir; ama <em>nasıl okunduğu</em> mecraya göre değişir — kısa, resmi, magazin veya çağrı odaklı olur.</p>
+          </div>
+        </section>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 my-6">
-          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-2">
-            <i data-lucide="radio" class="w-8 h-8 mx-auto text-[#00A3A6]"></i>
-            <h4 class="font-bold text-sm text-[#0F172A]">Geleneksel Medya</h4>
-            <p class="text-xs text-slate-600">Basın, Radyo, TV — Resmi, otoriter ve tek yönlü iletişim akışı.</p>
-          </div>
-          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-2">
-            <i data-lucide="share-2" class="w-8 h-8 mx-auto text-[#00A3A6]"></i>
-            <h4 class="font-bold text-sm text-[#0F172A]">Dijital Mecralar</h4>
-            <p class="text-xs text-slate-600">Social Media, Chat — Kısa, vurucu, hızlı ve etkileşim odaklı içerik.</p>
-          </div>
-          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-2">
-            <i data-lucide="cpu" class="w-8 h-8 mx-auto text-[#00A3A6]"></i>
-            <h4 class="font-bold text-sm text-[#0F172A]">Yapay Zekâ Çağı</h4>
-            <p class="text-xs text-slate-600">LLM & NLP — Mesajın mecralar arası deformasyonunun nicel ölçümü.</p>
-          </div>
+        <section class="space-y-3">
+          <h3 class="text-base font-bold text-[#0F172A] border-b border-slate-200 pb-2">Platform bunu nasıl gösterir?</h3>
+          <ol class="list-decimal pl-5 space-y-2.5 text-sm">
+            <li>
+              <strong>Dönüştürücü:</strong> Tek çekirdek mesaj → 8 mecra metni.
+              Aynı bilgi; farklı kanal kuralları.
+            </li>
+            <li>
+              <strong>Anlam koruma:</strong> “Bu metin hâlâ aynı şeyi mi anlatıyor?”
+              Embedding benzerliği ile yüzde olarak ölçülür.
+            </li>
+            <li>
+              <strong>Bilgi karşılaştırması:</strong> Kurum, zaman, kavram gibi olgular
+              hedef metinde duruyor mu, yok mu?
+            </li>
+            <li>
+              <strong>Anlatım netliği / çağrı / duygu:</strong> Mecra üslubu belirsiz mi,
+              eylem istiyor mu, tonu nasıl?
+            </li>
+          </ol>
+          <p class="text-sm m-0">
+            Özet: McLuhan “mecra mesajı değiştirir” der; bu sistem de o değişimi
+            <strong>üretilen metinler üzerinden ölçülebilir</strong> hale getirir.
+          </p>
+        </section>
+
+        <div class="pt-1">
+          <button type="button" onclick="switchToTab('dashboard')" class="corp-btn corp-btn-primary text-sm">
+            Dönüştürücüye git <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+          </button>
         </div>
-
-        <h3 class="text-xl font-bold text-[#0F172A] border-b border-slate-200 pb-3 pt-4">
-          2. Projenin Amacı ve Sayısallaştırma Metodolojisi
-        </h3>
-
-        <p>
-          Bu proje, kuramsal bir iletişim kavramını <strong>Doğal Dil İşleme (NLP)</strong> ve <strong>Derin Öğrenme (Deep Learning)</strong> modelleri ile ölçülebilir ve analitik bir sistem haline getirmeyi hedefler.
-        </p>
-
-        <ul class="list-disc pl-5 space-y-2 text-sm">
-          <li><strong>Çekirdek Mesaj Dönüşümü:</strong> Tek bir ham bilgi 8 farklı mecraya özgü üslup ve sınırlamalara uyarlanır.</li>
-          <li><strong>Bilgi Kaybı Analizi:</strong> Dönüşüm esnasında kaybolan olgu, sayı ve tarihler tespit edilir.</li>
-          <li><strong>Bozulma Zinciri (MMD):</strong> Mesajın mecradan mecraya aktarılırken yaşadığı anlamsal deformasyon ölçülür.</li>
-        </ul>
-      </div>
+      </article>
     </div>
 
   </main>
@@ -703,6 +640,8 @@
           </div>
           <div id="modal-content" class="p-4 bg-slate-50 rounded-xl border border-slate-200/80 text-sm sm:text-base text-slate-800 leading-relaxed font-normal whitespace-pre-line shadow-xs"></div>
         </div>
+
+        <div id="modal-video-tools" class="hidden"></div>
 
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
           <div class="p-3.5 rounded-xl bg-teal-50/60 border border-teal-100 text-center space-y-1">
@@ -800,6 +739,6 @@
     </div>
   </footer>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=video-pdf2"></script>
 </body>
 </html>

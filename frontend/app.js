@@ -6,8 +6,9 @@
 // Uygulama Durum Yönetimi (Application State)
 const appState = {
   activeTab: 'dashboard',
-  coreMessage: "Yoğun kar yağışı nedeniyle Elazığ genelinde yarın tüm okullar 1 gün süreyle tatil edilmiştir.",
+  coreMessage: '',
   isLoading: false,
+  analysisReady: false,
   selectedPlatformForDiff: 'x_twitter',
   selectedOfficialChannel: 'press_release',
   transformedMessages: {},
@@ -19,6 +20,7 @@ const appState = {
 
 // Mecra Tanımları, İkonları ve Kurumsal Logoları
 const CIB_LOGO_URL = 'assets/cib-logo.png';
+const VIDEO_CHANNEL_ID = 'vertical_video';
 
 const PLATFORMS_CONFIG = [
   { 
@@ -97,6 +99,26 @@ function initLucideIcons() {
   }
 }
 
+/** Proofread LLM'inin eklediği "Düzenlenmiş metin:" etiketini temizler. */
+function stripProofreadLabel(text) {
+  let t = String(text || '').trim();
+  t = t.replace(/^```[a-zA-Z]*\n?/, '').replace(/\n?```$/, '').trim();
+  t = t.replace(
+    /(?:^|\n)\s*(?:\*{0,2}|_{0,2}|`{0,2})?(?:düzenlenmiş|duzenlenmis|düzeltilmiş|duzeltilmis)\s+(?:metin|hali|hâli)\s*[:：\-–]\s*/gi,
+    (m, offset) => (offset === 0 || m.startsWith('\n') ? (m.startsWith('\n') ? '\n' : '') : '')
+  );
+  // Metin ortasında kalan etiket
+  t = t.replace(
+    /(?:düzenlenmiş|duzenlenmis|düzeltilmiş|duzeltilmis)\s+(?:metin|hali|hâli)\s*[:：\-–]\s*/gi,
+    ''
+  );
+  t = t.replace(
+    /(?:corrected|proofread(?:ed)?)\s+text\s*[:：\-–]\s*/gi,
+    ''
+  );
+  return t.replace(/^["'`]+|["'`]+$/g, '').trim();
+}
+
 // Sekmeler Arası Geçiş Yönetimi
 function initTabNavigation() {
   const navButtons = document.querySelectorAll('.nav-tab-btn');
@@ -122,12 +144,14 @@ function initTabNavigation() {
 
 function switchToTab(targetTab) {
   if (!targetTab) targetTab = 'dashboard';
+  // Kaldırılan sekmeler
+  if (targetTab === 'lab' || targetTab === 'tarihce') targetTab = targetTab === 'tarihce' ? 'theory' : 'history';
 
   const navButtons = document.querySelectorAll('.nav-tab-btn');
   const tabPages = document.querySelectorAll('.tab-page');
   appState.activeTab = targetTab;
 
-  const activeClasses = ['bg-white', 'text-[#00A3A6]', 'font-bold', 'shadow-xs', 'border-slate-200/80'];
+  const activeClasses = ['bg-white', 'text-[#00A3A6]', 'font-bold', 'shadow-xs', 'border-slate-200/80', 'active'];
   const inactiveClasses = ['text-slate-600', 'font-semibold', 'border-transparent'];
 
   navButtons.forEach(b => {
@@ -155,9 +179,6 @@ function switchToTab(targetTab) {
   } else if (targetTab === 'history') {
     loadHistoryPage();
     renderHistoryPageLocalChips();
-  } else if (targetTab === 'lab') {
-    loadServerHistory();
-    if (appState.lastBenchmark) renderBenchmarkReport(appState.lastBenchmark);
   } else if (targetTab === 'official-doc') {
     updatePressReleaseDraft();
   }
@@ -287,15 +308,27 @@ function plainFactLabel(label) {
     'PER': 'Kişi',
     'PERSON': 'Kişi',
     'LOC': 'Yer',
-    'GPE': 'Yer / ülke',
+    'GPE': 'Yer',
     'ORG': 'Kurum',
-    'DATE': 'Tarih',
+    'MISC': 'Kavram',
+    'CONCEPT': 'Kavram',
+    'DATE': 'Zaman',
     'TIME': 'Zaman',
     'MONEY': 'Para',
     'PERCENT': 'Yüzde',
-    'EVENT': 'Olay'
+    'EVENT': 'Olay',
+    'CLAIM': 'İddia',
+    'ATTRIBUTION': 'Atıf',
+    'STATISTIC': 'İstatistik'
   };
   return map[String(label || '').toUpperCase()] || String(label || 'Bilgi');
+}
+
+function factSourceBadge(facts) {
+  const src = (facts || []).map(f => f.source).find(Boolean) || '';
+  if (src === 'hybrid') return '<span class="fact-ai-badge" title="Gemini baskın + kural yedek">AI baskın</span>';
+  if (src === 'ai') return '<span class="fact-ai-badge" title="Gemini olgu + karşılaştırma">AI</span>';
+  return '<span class="fact-ai-badge fact-ai-badge--rule" title="Kural tabanlı NER">Kural</span>';
 }
 
 function plainCtaPerson(person) {
@@ -339,7 +372,11 @@ function renderAnalyticsDetail() {
   if (badgeEl) badgeEl.textContent = item ? `Benzerlik %${item.sim}` : 'Henüz analiz yok';
 
   if (!item || !item.details) {
-    panel.innerHTML = `<div class="text-sm text-slate-400 text-center py-8">Bu platform için henüz ayrıntılı sonuç yok. Mesajı dönüştürüp analiz bitince burada görünür.</div>`;
+    const earlyVideo = platformId === VIDEO_CHANNEL_ID
+      ? videoScenarioToolsHtml({ mountId: 'analytics-video-module-mount' })
+      : '';
+    panel.innerHTML = `${earlyVideo}<div class="text-sm text-slate-400 text-center py-8">Bu platform için henüz ayrıntılı sonuç yok. Mesajı dönüştürüp analiz bitince burada görünür.</div>`;
+    if (earlyVideo) initLucideIcons();
     return;
   }
 
@@ -397,7 +434,12 @@ function renderAnalyticsDetail() {
   const sim = Number(item.sim) || 0;
   const simTone = sim >= 80 ? 'iyi' : sim >= 60 ? 'orta' : 'düşük';
 
+  const videoToolsBlock = platformId === VIDEO_CHANNEL_ID
+    ? videoScenarioToolsHtml({ mountId: 'analytics-video-module-mount' })
+    : '';
+
   panel.innerHTML = `
+    ${videoToolsBlock}
     <div class="verdict-strip">
       <div class="verdict-item">
         <span class="verdict-label">Anlam</span>
@@ -429,8 +471,8 @@ function renderAnalyticsDetail() {
     <section class="fact-board">
       <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-3">
         <div>
-          <h4 class="font-black text-slate-900 text-base tracking-tight">Bilgi karşılaştırması</h4>
-          <p class="text-sm text-slate-500 mt-0.5">Asıl mesajdaki önemli bilgiler → bu platformda var mı?</p>
+          <h4 class="font-black text-slate-900 text-base tracking-tight">Bilgi karşılaştırması ${factSourceBadge(facts)}</h4>
+          <p class="text-sm text-slate-500 mt-0.5">Asıl mesajdaki önemli bilgiler (kişi / kurum / yer / zaman / kavram) → bu platformda var mı?</p>
         </div>
         <div class="text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-lg px-3 py-1.5">
           ${keptFacts.length}/${facts.length || 0} bilgi duruyor
@@ -491,6 +533,7 @@ function renderAnalyticsDetail() {
       </div>
     </div>
   `;
+  if (platformId === VIDEO_CHANNEL_ID) initLucideIcons();
 }
 
 // Çevirme ve Analiz İşlemini Çalıştır (Simülasyon / API)
@@ -499,19 +542,26 @@ async function runTransformationAndAnalysis(coreText) {
   appState.isLoading = true;
   renderSkeletonLoaders();
 
+  const withTimeout = (ms) => {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), ms);
+    return { signal: ctrl.signal, clear: () => clearTimeout(t) };
+  };
+
   try {
-    // ✍️ AŞAMA 0: Önce imla / yazım düzelt — kutuyu güncelle
-    showToast('✍️ Çekirdek mesaj yazım kurallarına göre düzenleniyor...', 'info');
     let workingCore = (coreText || '').trim();
     try {
+      const proofTO = withTimeout(25000);
       const proofRes = await fetch('/api/proofread', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: workingCore, author: 'Kamu Görevlisi' })
+        body: JSON.stringify({ content: workingCore, author: 'Kamu Görevlisi' }),
+        signal: proofTO.signal
       });
+      proofTO.clear();
       if (proofRes.ok) {
         const proofData = await proofRes.json();
-        workingCore = (proofData.core_message || workingCore).trim();
+        workingCore = stripProofreadLabel(proofData.core_message || workingCore);
         appState.coreMessage = workingCore;
         const coreInputEl = document.getElementById('core-message-input');
         if (coreInputEl) {
@@ -519,29 +569,25 @@ async function runTransformationAndAnalysis(coreText) {
           coreInputEl.classList.add('ring-2', 'ring-[#00A3A6]');
           setTimeout(() => coreInputEl.classList.remove('ring-2', 'ring-[#00A3A6]'), 1200);
         }
-        if (proofData.core_was_proofread) {
-          showToast('✍️ Çekirdek mesaj düzeltildi (anlam aynı). Dönüşüm başlıyor...', 'success');
-        }
       }
     } catch (proofErr) {
       console.warn('Yazım düzeltme atlandı:', proofErr);
     }
 
-    // Geçmişe yalnızca düzeltilmiş (çalışan) metni kaydet
     saveToHistory(workingCore);
 
-    // 🚀 AŞAMA 1: Düzeltilmiş core üzerinden 8 mecra dönüşümü
-    showToast('⚡ 8 mecraya dönüştürülüyor...', 'info');
+    const transformTO = withTimeout(150000);
     const transformRes = await fetch('/api/transform', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: workingCore, author: 'Kamu Görevlisi', skip_proofread: true })
+      body: JSON.stringify({ content: workingCore, author: 'Kamu Görevlisi', skip_proofread: true }),
+      signal: transformTO.signal
     });
+    transformTO.clear();
 
     if (transformRes.ok) {
       const transformData = await transformRes.json();
       const transformedObj = {};
-      const initialAnalysisArr = [];
       const platformPayload = [];
       const correctedCore = (transformData.core_message || workingCore).trim();
 
@@ -551,38 +597,32 @@ async function runTransformationAndAnalysis(coreText) {
         coreInputEl.value = correctedCore;
       }
 
-      transformData.platforms.forEach(p => {
-        transformedObj[p.id] = p.transformed_content;
-        platformPayload.push({ id: p.id, transformed_content: p.transformed_content });
-        initialAnalysisArr.push({
-          channel: p.id,
-          sim: 90.0,
-          loss: 'Analiz Ediliyor...',
-          cta: 'Analiz Ediliyor...',
-          sentiment: 'POS',
-          ambiguity: 'Düşük'
-        });
+      (transformData.platforms || []).forEach(p => {
+        const cleaned = stripProofreadLabel(p.transformed_content || '');
+        transformedObj[p.id] = cleaned;
+        platformPayload.push({ id: p.id, transformed_content: cleaned });
       });
 
       appState.transformedMessages = transformedObj;
-      appState.analysisResults = initialAnalysisArr;
-      appState.isLoading = false;
-
-      // 💥 ANINDA EKRANA BASTIR! Kullanıcı metinleri 2 saniyede görür!
+      appState.analysisResults = [];
+      appState.analysisReady = false;
       renderPlatformCards();
-      showToast('✅ 8 mecra dönüşümü tamamlandı! NLP Metrikleri analiz ediliyor...', 'success');
+      showToast('Dönüşüm tamamlandı — analiz sürüyor.', 'success');
 
-      // 📊 AŞAMA 2: Arka Planda NLP Analizi (Metrikler ve Grafikler)
       try {
+        const analyzeTO = withTimeout(120000);
         const analyzeRes = await fetch('/api/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ core_message: correctedCore, platforms: platformPayload, author: "Kamu Görevlisi" })
+          body: JSON.stringify({ core_message: correctedCore, platforms: platformPayload, author: "Kamu Görevlisi" }),
+          signal: analyzeTO.signal
         });
+        analyzeTO.clear();
 
         if (analyzeRes.ok) {
           const analyzeData = await analyzeRes.json();
           appState.analysisResults = (analyzeData.platforms || []).map(mapPlatformAnalysis);
+          appState.analysisReady = true;
           const deg = analyzeData.degradation_chain || null;
           appState.degradationChain = deg && deg.steps ? deg.steps : [];
           appState.degradationMeta = deg ? {
@@ -591,8 +631,9 @@ async function runTransformationAndAnalysis(coreText) {
             max_consecutive_deviation: deg.max_consecutive_deviation
           } : null;
 
+          renderPlatformCards();
           refreshAnalyticsViews();
-          showToast('Analiz hazır: Analiz sekmesinde VAR / YOK bilgi karşılaştırmasına bak.', 'success');
+          showToast('Analiz sonuçları hazır.', 'success');
           if (appState.activeTab === 'analytics') {
             const card = document.getElementById('analytics-detail-card');
             if (card) setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
@@ -603,23 +644,31 @@ async function runTransformationAndAnalysis(coreText) {
       }
 
     } else {
-      const mockData = generateMockTransformation(coreText);
+      const mockData = generateMockTransformation(workingCore || coreText);
       appState.transformedMessages = mockData.transformedMessages;
       appState.analysisResults = mockData.analysisResults;
+      appState.analysisReady = true;
       appState.degradationChain = mockData.degradationChain;
       appState.degradationMeta = mockData.degradationMeta || null;
-      appState.isLoading = false;
-      refreshAnalyticsViews();
+      renderPlatformCards();
+      showToast('Dönüşüm tamamlandı (yedek şablon).', 'info');
     }
   } catch (err) {
+    console.error('Dönüşüm hatası:', err);
     const mockData = generateMockTransformation(coreText);
     appState.transformedMessages = mockData.transformedMessages;
     appState.analysisResults = mockData.analysisResults;
+    appState.analysisReady = true;
     appState.degradationChain = mockData.degradationChain;
     appState.degradationMeta = mockData.degradationMeta || null;
+    renderPlatformCards();
+    showToast('Bağlantı/kota sorunu — yedek çıktılar gösterildi.', 'warning');
+  } finally {
     appState.isLoading = false;
-    refreshAnalyticsViews();
-    showToast('Varsayılan simülasyon moduna geçildi. ✅', 'info');
+    // Skeleton takılı kalmasın
+    if (!Object.keys(appState.transformedMessages || {}).length) {
+      renderPlatformCards();
+    }
   }
 }
 
@@ -675,15 +724,22 @@ function renderPlatformCards() {
   grid.innerHTML = '';
 
   PLATFORMS_CONFIG.forEach(platform => {
-    const message = (appState.transformedMessages[platform.id] || '').trim();
+    const rawMessage = (appState.transformedMessages[platform.id] || '').trim();
+    const message = stripProofreadLabel(rawMessage);
+    if (message !== rawMessage && rawMessage) {
+      appState.transformedMessages[platform.id] = message;
+    }
     const hasContent = message.length > 0;
-    const analysis = appState.analysisResults.find(a => a.channel === platform.id) || null;
-    const simLabel = analysis && analysis.sim != null ? `%${analysis.sim}` : '—';
-    const sentimentLabel = analysis ? plainSentiment(analysis.sentiment) : '—';
-    const ambiguityLabel = analysis ? plainAmbiguity(analysis.ambiguity).text : 'Beklemede';
-    const sentimentClass = !analysis
-      ? 'text-slate-500'
-      : (String(analysis.sentiment || '').toUpperCase().includes('POS') ? 'text-emerald-600' : 'text-rose-600');
+    const analysisReady = !!appState.analysisReady;
+    const analysis = analysisReady
+      ? (appState.analysisResults.find(a => a.channel === platform.id) || null)
+      : null;
+    const simLabel = analysis && analysis.sim != null ? `%${analysis.sim}` : '';
+    const sentimentLabel = analysis ? plainSentiment(analysis.sentiment) : '';
+    const ambiguityLabel = analysis ? plainAmbiguity(analysis.ambiguity).text : '';
+    const sentimentTone = !analysis
+      ? 'neutral'
+      : (String(analysis.sentiment || '').toUpperCase().includes('POS') ? 'pos' : 'neg');
 
     let logoHtml = '';
     if (platform.logoUrl) {
@@ -701,6 +757,25 @@ function renderPlatformCards() {
            <span class="platform-empty-hint">Çekirdek mesajı girip «Analiz Et ve Dönüştür» ile başlatın.</span>
          </div>`;
 
+    const simBadgeHtml = analysisReady && simLabel
+      ? `<span class="text-[11px] px-2 py-1 rounded-md font-bold shrink-0 bg-[#0B1F33] text-white">${simLabel}</span>`
+      : (hasContent && !analysisReady
+        ? `<span class="text-[10px] px-2 py-1 rounded-md font-semibold shrink-0 bg-slate-100 text-slate-500 border border-slate-200">Analiz…</span>`
+        : '');
+
+    const metaHtml = analysisReady
+      ? `<div class="platform-meta-row">
+            <span class="platform-meta-chip platform-meta-chip--${sentimentTone}" title="Duygu analizi">
+              <span class="platform-meta-key">Duygu</span>
+              <span class="platform-meta-val">${escapeHtml(sentimentLabel)}</span>
+            </span>
+            <span class="platform-meta-chip" title="Belirsizlik düzeyi">
+              <span class="platform-meta-key">Belirsizlik</span>
+              <span class="platform-meta-val">${escapeHtml(ambiguityLabel)}</span>
+            </span>
+          </div>`
+      : '';
+
     const cardHtml = `
       <div onclick="openExpandedCardModal('${platform.id}')" class="corporate-card platform-card p-5 flex flex-col justify-between cursor-pointer transition-all duration-300 group">
         <div>
@@ -714,28 +789,29 @@ function renderPlatformCards() {
                 <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wide">${platform.category}</span>
               </div>
             </div>
-            <span class="text-[11px] px-2 py-1 rounded-md font-bold shrink-0 ${hasContent ? 'bg-[#0B1F33] text-white' : 'bg-slate-100 text-slate-500 border border-slate-200'}">
-              ${simLabel}
-            </span>
+            ${simBadgeHtml}
           </div>
           ${bodyHtml}
         </div>
 
-        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-          <div class="flex items-center gap-2 font-semibold min-w-0">
-            <img src="${CIB_LOGO_URL}" alt="" class="w-4 h-4 object-contain opacity-70 shrink-0">
-            <span class="truncate">Duygu: <strong class="${sentimentClass}">${sentimentLabel}</strong></span>
-            <span>·</span>
-            <span class="truncate">${ambiguityLabel}</span>
-          </div>
-          <div class="flex items-center space-x-1.5 shrink-0">
-            <button onclick="copyPlatformMessage('${platform.id}', event)" title="Kopyala" class="px-2.5 py-1.5 rounded-md bg-teal-50 hover:bg-[#00A3A6] text-[#00A3A6] hover:text-white font-bold transition-all border border-teal-200/80 flex items-center gap-1 ${hasContent ? '' : 'opacity-40 pointer-events-none'}">
-              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+        <div class="platform-card-footer">
+          ${metaHtml}
+          ${platform.id === VIDEO_CHANNEL_ID && hasContent ? `
+          <div class="platform-video-actions" onclick="event.stopPropagation()">
+            <button type="button" class="platform-action-btn platform-action-btn--video" onclick="openExpandedCardModal('${platform.id}'); setTimeout(()=>openVideoCreateModule('modal-video-module-mount'),220)" title="Video oluştur">
+              <svg class="platform-action-ico" viewBox="0 0 24 24" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/></svg>
+              <span>Video</span>
             </button>
-            <div class="text-[#005F61] font-bold flex items-center gap-1 bg-slate-100 px-2 py-1.5 rounded-md">
+          </div>` : ''}
+          <div class="platform-action-row">
+            <button type="button" onclick="copyPlatformMessage('${platform.id}', event)" class="platform-action-btn ${hasContent ? '' : 'is-disabled'}" ${hasContent ? '' : 'disabled tabindex="-1"'} title="Metni kopyala">
+              <svg class="platform-action-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+              <span>Kopyala</span>
+            </button>
+            <span class="platform-action-btn platform-action-btn--primary">
               <span>Detay</span>
-              <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
-            </div>
+              <svg class="platform-action-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18l6-6-6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
           </div>
         </div>
       </div>
@@ -751,9 +827,9 @@ function openExpandedCardModal(platformId) {
   if (!platform) return;
 
   const message = (appState.transformedMessages[platformId] || '').trim() || 'Bu mecra için henüz dönüşüm yapılmadı.';
-  const analysis = appState.analysisResults.find(a => a.channel === platformId) || {
-    sim: 85, loss: 'Hayır', cta: 'Evet', sentiment: 'POS', ambiguity: 'Düşük'
-  };
+  const analysis = appState.analysisReady
+    ? (appState.analysisResults.find(a => a.channel === platformId) || null)
+    : null;
 
   const modal = document.getElementById('card-detail-modal');
   const container = document.getElementById('modal-container');
@@ -762,15 +838,20 @@ function openExpandedCardModal(platformId) {
   document.getElementById('modal-title').textContent = platform.name;
   document.getElementById('modal-category').textContent = platform.category;
   document.getElementById('modal-content').textContent = message;
-  document.getElementById('modal-sim').textContent = `%${analysis.sim}`;
+  document.getElementById('modal-sim').textContent = analysis && analysis.sim != null ? `%${analysis.sim}` : 'Analiz bekleniyor';
   const lossEl = document.getElementById('modal-loss');
   if (lossEl) {
-    const hasLoss = analysis.loss === 'Evet' || analysis.loss === true;
-    lossEl.textContent = hasLoss ? 'Evet, bilgi eksik' : 'Hayır, bilgi duruyor';
-    lossEl.className = `text-sm font-bold ${hasLoss ? 'text-rose-600' : 'text-emerald-600'}`;
+    if (!analysis) {
+      lossEl.textContent = 'Analiz bekleniyor';
+      lossEl.className = 'text-sm font-bold text-slate-500';
+    } else {
+      const hasLoss = analysis.loss === 'Evet' || analysis.loss === true;
+      lossEl.textContent = hasLoss ? 'Evet, bilgi eksik' : 'Hayır, bilgi duruyor';
+      lossEl.className = `text-sm font-bold ${hasLoss ? 'text-rose-600' : 'text-emerald-600'}`;
+    }
   }
-  document.getElementById('modal-sentiment').textContent = plainSentiment(analysis.sentiment);
-  document.getElementById('modal-ambiguity').textContent = plainAmbiguity(analysis.ambiguity).text;
+  document.getElementById('modal-sentiment').textContent = analysis ? plainSentiment(analysis.sentiment) : 'Analiz bekleniyor';
+  document.getElementById('modal-ambiguity').textContent = analysis ? plainAmbiguity(analysis.ambiguity).text : 'Analiz bekleniyor';
 
   const modalIconBox = document.getElementById('modal-icon-box');
   if (modalIconBox) {
@@ -807,6 +888,17 @@ function openExpandedCardModal(platformId) {
     };
   }
 
+  const videoToolsHost = document.getElementById('modal-video-tools');
+  if (videoToolsHost) {
+    if (platformId === VIDEO_CHANNEL_ID) {
+      videoToolsHost.classList.remove('hidden');
+      videoToolsHost.innerHTML = videoScenarioToolsHtml({ mountId: 'modal-video-module-mount' });
+    } else {
+      videoToolsHost.classList.add('hidden');
+      videoToolsHost.innerHTML = '';
+    }
+  }
+
   modal.classList.remove('hidden');
   setTimeout(() => {
     container.classList.remove('scale-95', 'opacity-0');
@@ -827,6 +919,172 @@ function closeExpandedCardModal() {
     modal.classList.add('hidden');
   }, 200);
 }
+
+// ============================================================
+// DİKEY VİDEO (TikTok/Reels) — PDF senaryo + video modül yuvası
+// ============================================================
+
+function getVideoScenarioText() {
+  return stripProofreadLabel((appState.transformedMessages[VIDEO_CHANNEL_ID] || '').trim());
+}
+
+function videoScenarioToolsHtml(opts = {}) {
+  const compact = !!opts.compact;
+  const mountId = opts.mountId || 'video-module-mount';
+  const hasScript = !!getVideoScenarioText();
+  return `
+    <div class="video-scenario-tools ${compact ? 'video-scenario-tools--compact' : ''}" data-video-tools>
+      <div class="video-scenario-tools__head">
+        <div>
+          <p class="video-scenario-tools__kicker">Dikey video prodüksiyon</p>
+          <h4 class="video-scenario-tools__title">Senaryo çıktıları</h4>
+          <p class="video-scenario-tools__desc">PDF olarak indirin veya video üretim modülünü açın.</p>
+        </div>
+        <div class="video-scenario-tools__actions">
+          <button type="button" class="video-tool-btn video-tool-btn--pdf" onclick="event.stopPropagation(); downloadVideoScenarioPdf()" ${hasScript ? '' : 'disabled'}>
+            <i data-lucide="file-down" class="w-4 h-4"></i>
+            <span>PDF Senaryo</span>
+          </button>
+          <button type="button" class="video-tool-btn video-tool-btn--create" onclick="event.stopPropagation(); openVideoCreateModule('${mountId}')" ${hasScript ? '' : 'disabled'}>
+            <i data-lucide="clapperboard" class="w-4 h-4"></i>
+            <span>Video Oluştur</span>
+          </button>
+        </div>
+      </div>
+      <div id="${mountId}" class="video-module-mount" hidden data-open="0" aria-live="polite">
+        <div class="video-module-mount__placeholder">
+          <p class="font-semibold text-slate-700 text-sm">Video modülü yuvası</p>
+          <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+            Kendi video üretim arayüzünüzü buraya gömün.
+            Örnek: <code class="text-[11px] bg-slate-100 px-1 rounded">document.getElementById('${mountId}').appendChild(yourWidget)</code>
+            veya <code class="text-[11px] bg-slate-100 px-1 rounded">window.MecraVideoModule.mount(el)</code>
+          </p>
+        </div>
+      </div>
+    </div>`;
+}
+
+function parseVideoScenes(raw) {
+  const text = (raw || '').trim();
+  if (!text) return { title: '', scenes: [], raw: '' };
+  const titleMatch = text.match(/V[İI]DEO\s*BA[ŞS]LI[ĞG]I\s*:\s*(.+)/i);
+  const title = titleMatch ? titleMatch[1].trim() : 'Dikey Video Senaryosu';
+  const parts = text.split(/(?=SAHNE\s*\d+)/i).map(p => p.trim()).filter(Boolean);
+  const scenes = [];
+  parts.forEach(block => {
+    if (!/^SAHNE/i.test(block)) return;
+    const head = (block.match(/^SAHNE[^\n]*/i) || [''])[0].trim();
+    const gorsel = (block.match(/G[ÖO]RSEL\s*:\s*(.+)/i) || [, ''])[1].trim();
+    const yazi = (block.match(/YAZI\s*:\s*(.+)/i) || [, ''])[1].trim();
+    const ses = (block.match(/SES\s*:\s*(.+)/i) || [, ''])[1].trim();
+    scenes.push({ head, gorsel, yazi, ses });
+  });
+  return { title, scenes, raw: text };
+}
+
+function downloadVideoScenarioPdf() {
+  const scenario = getVideoScenarioText();
+  if (!scenario) {
+    showToast('Önce dikey video senaryosu üretilmeli.', 'warning');
+    return;
+  }
+  const parsed = parseVideoScenes(scenario);
+  const today = getTodayFormattedDate();
+  const sceneHtml = parsed.scenes.length
+    ? parsed.scenes.map((s, i) => `
+        <section class="scene">
+          <h2>${escapeHtml(s.head || ('Sahne ' + (i + 1)))}</h2>
+          <table>
+            <tr><th>Görsel</th><td>${escapeHtml(s.gorsel || '—')}</td></tr>
+            <tr><th>Yazı</th><td>${escapeHtml(s.yazi || '—')}</td></tr>
+            <tr><th>Ses</th><td>${escapeHtml(s.ses || '—')}</td></tr>
+          </table>
+        </section>`).join('')
+    : `<pre class="raw">${escapeHtml(parsed.raw)}</pre>`;
+
+  const html = `<!DOCTYPE html><html lang="tr"><head><meta charset="utf-8">
+    <title>Dikey Video Senaryosu — ${escapeHtml(parsed.title)}</title>
+    <style>
+      @page { margin: 18mm; }
+      body { font-family: Georgia, 'Times New Roman', serif; color: #0f172a; margin: 0; padding: 24px; }
+      .brand { font-family: Arial, sans-serif; text-align: center; border-bottom: 3px double #b30000; padding-bottom: 14px; margin-bottom: 18px; }
+      .brand .org { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+      .brand h1 { font-size: 18px; color: #b30000; margin: 10px 0 0; letter-spacing: .06em; }
+      .meta { font-family: Arial, sans-serif; font-size: 11px; font-weight: 700; display: flex; justify-content: space-between; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 18px; }
+      .scene { margin: 0 0 16px; page-break-inside: avoid; }
+      .scene h2 { font-family: Arial, sans-serif; font-size: 13px; margin: 0 0 8px; color: #0b1f33; background: #f1f5f9; padding: 6px 10px; }
+      table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+      th { width: 72px; text-align: left; vertical-align: top; padding: 6px 8px; color: #64748b; font-family: Arial, sans-serif; font-size: 11px; }
+      td { padding: 6px 8px; border-bottom: 1px solid #e2e8f0; line-height: 1.45; }
+      .raw { white-space: pre-wrap; font-size: 12px; background: #f8fafc; padding: 12px; border: 1px solid #e2e8f0; }
+      .foot { margin-top: 28px; font-family: Arial, sans-serif; font-size: 10px; color: #64748b; text-align: center; border-top: 1px solid #cbd5e1; padding-top: 10px; }
+      @media print { .noprint { display: none !important; } }
+    </style></head><body>
+      <div class="brand">
+        <div class="org">T.C. Cumhurbaşkanlığı İletişim Başkanlığı</div>
+        <div class="org" style="font-weight:600;margin-top:2px">Basın ve Yayın Dairesi Başkanlığı</div>
+        <h1>DİKEY VİDEO PRODÜKSİYON SENARYO BELGESİ</h1>
+      </div>
+      <div class="meta"><span>Tarih: ${today}</span><span>Belge: TikTok / Reels Senaryosu</span></div>
+      <p style="font-family:Arial,sans-serif;font-size:13px;font-weight:700;margin:0 0 14px">Video başlığı: ${escapeHtml(parsed.title)}</p>
+      ${sceneHtml}
+      <div class="foot">Mecra Mesajdır · Senaryo çıktısı · Yazdır penceresinden «PDF olarak kaydet» seçebilirsiniz.</div>
+      <script>window.onload=function(){setTimeout(function(){window.print()},250)}<\/script>
+    </body></html>`;
+
+  const w = window.open('', '_blank', 'noopener,noreferrer,width=900,height=720');
+  if (!w) {
+    showToast('Açılır pencere engellendi. Tarayıcıda pop-up izni verin.', 'error');
+    return;
+  }
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  showToast('Senaryo PDF yazdırma ekranı açıldı.', 'success');
+}
+
+function openVideoCreateModule(mountId = 'video-module-mount') {
+  const scenario = getVideoScenarioText();
+  if (!scenario) {
+    showToast('Önce dikey video senaryosu üretilmeli.', 'warning');
+    return;
+  }
+  const mount = document.getElementById(mountId);
+  if (!mount) {
+    showToast('Video modül yuvası bulunamadı.', 'error');
+    return;
+  }
+  const opening = mount.getAttribute('data-open') !== '1';
+  mount.hidden = !opening;
+  mount.setAttribute('data-open', opening ? '1' : '0');
+  if (opening) {
+    mount.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    const detail = { scenario, channel: VIDEO_CHANNEL_ID, mountId, mount };
+    window.dispatchEvent(new CustomEvent('mecra:open-video-module', { detail }));
+    if (typeof window.MecraVideoModule?.onOpen === 'function') {
+      try { window.MecraVideoModule.onOpen(detail); } catch (e) { console.warn(e); }
+    }
+    showToast('Video oluşturma alanı açıldı — modülünüzü bu yuvaya gömebilirsiniz.', 'info');
+  }
+}
+
+window.MecraVideoModule = {
+  channelId: VIDEO_CHANNEL_ID,
+  getScenario: getVideoScenarioText,
+  downloadPdf: downloadVideoScenarioPdf,
+  open: openVideoCreateModule,
+  /** Kendi widget'ınızı yuvaya yerleştirin */
+  mount(node, mountId = 'video-module-mount') {
+    const el = document.getElementById(mountId);
+    if (!el || !node) return false;
+    el.innerHTML = '';
+    el.appendChild(node);
+    el.hidden = false;
+    el.setAttribute('data-open', '1');
+    return true;
+  },
+  onOpen: null
+};
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeExpandedCardModal();
@@ -876,11 +1134,17 @@ function renderAnalyticsKPIs() {
   const ctaHint = document.getElementById('kpi-cta-hint');
   const ambHint = document.getElementById('kpi-amb-hint');
 
+  const ambSub = document.getElementById('kpi-amb-sub');
+
   if (!results.length) {
     if (avgEl) avgEl.textContent = '—';
     if (lossEl) lossEl.textContent = '—';
     if (ctaEl) ctaEl.textContent = '—';
-    if (ambEl) ambEl.textContent = '—';
+    if (ambEl) {
+      ambEl.textContent = '—';
+      ambEl.className = 'text-3xl font-black text-[#008385]';
+    }
+    if (ambSub) ambSub.textContent = 'Netlik sağlanan mecra';
     return;
   }
 
@@ -893,11 +1157,21 @@ function renderAnalyticsKPIs() {
     return a.includes('yüksek') || a.includes('high');
   }).length;
   const total = results.length;
+  const clearCount = total - highAmb;
 
   if (avgEl) avgEl.textContent = `%${avg.toFixed(0)}`;
   if (lossEl) lossEl.textContent = `${lossCount} / ${total}`;
   if (ctaEl) ctaEl.textContent = `${ctaCount} / ${total}`;
-  if (ambEl) ambEl.textContent = `${highAmb} / ${total}`;
+  // Kurumsal okuma: netlik sağlanan mecra / toplam (0 belirsiz = 8/8)
+  if (ambEl) {
+    ambEl.textContent = `${clearCount} / ${total}`;
+    ambEl.className = highAmb === 0
+      ? 'text-3xl font-black text-[#008385]'
+      : highAmb <= Math.ceil(total / 4)
+        ? 'text-3xl font-black text-amber-600'
+        : 'text-3xl font-black text-rose-600';
+  }
+  if (ambSub) ambSub.textContent = 'Netlik sağlanan mecra';
 
   if (avgHint) {
     avgHint.textContent = avg >= 80
@@ -918,8 +1192,8 @@ function renderAnalyticsKPIs() {
   }
   if (ambHint) {
     ambHint.textContent = highAmb === 0
-      ? 'Anlatım genel olarak net.'
-      : `${highAmb} metin kaçamak veya belirsiz görünüyor.`;
+      ? 'Tüm mecralarda anlatım net ve açıktır. Yüksek belirsizlik tespit edilmemiştir.'
+      : `${clearCount} mecrada anlatım net; ${highAmb} mecrada belirsizlik düzeyi yüksektir.`;
   }
 }
 
@@ -1085,14 +1359,18 @@ function renderRadarChart() {
     data: {
       labels: platforms,
       datasets: [{
-        label: 'Anlam aynı mı? (%)',
+        label: 'Anlamsal benzerlik (%)',
         data: simScores,
-        backgroundColor: 'rgba(0, 163, 166, 0.2)',
-        borderColor: '#00A3A6',
-        pointBackgroundColor: '#00A3A6',
+        backgroundColor: 'rgba(0, 131, 133, 0.14)',
+        borderColor: '#008385',
+        borderWidth: 2,
+        pointBackgroundColor: '#008385',
         pointBorderColor: '#fff',
+        pointBorderWidth: 1.5,
+        pointRadius: 3.5,
         pointHoverBackgroundColor: '#fff',
-        pointHoverBorderColor: '#00A3A6'
+        pointHoverBorderColor: '#008385',
+        pointHoverRadius: 5
       }]
     },
     options: {
@@ -1100,9 +1378,39 @@ function renderRadarChart() {
       maintainAspectRatio: false,
       scales: {
         r: {
-          angleLines: { color: 'rgba(0,0,0,0.05)' },
-          suggestedMin: 50,
-          suggestedMax: 100
+          min: 50,
+          max: 100,
+          ticks: {
+            stepSize: 10,
+            backdropColor: 'transparent',
+            color: '#94a3b8',
+            font: { size: 10, weight: '600' },
+            callback: (v) => v + '%'
+          },
+          pointLabels: {
+            color: '#334155',
+            font: { size: 11, weight: '600' }
+          },
+          grid: { color: 'rgba(15, 23, 42, 0.08)' },
+          angleLines: { color: 'rgba(15, 23, 42, 0.06)' }
+        }
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'bottom',
+          labels: {
+            boxWidth: 10,
+            boxHeight: 10,
+            color: '#475569',
+            font: { size: 11, weight: '600' },
+            padding: 12
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => ` Anlamsal benzerlik: %${Number(ctx.raw || 0).toFixed(1)}`
+          }
         }
       }
     }
@@ -1119,30 +1427,69 @@ function renderBarChart() {
     barChartInstance.destroy();
   }
 
-  const platforms = PLATFORMS_CONFIG.map(p => p.name);
+  const shortLabels = PLATFORMS_CONFIG.map(p => p.name.split(' ')[0]);
+  const fullNames = PLATFORMS_CONFIG.map(p => p.name);
   const scores = getAlignedSimScores();
 
   barChartInstance = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: platforms,
+      labels: shortLabels,
       datasets: [{
-        label: 'Anlam korunma (%)',
+        label: 'Anlamsal benzerlik (%)',
         data: scores,
-        backgroundColor: '#00A3A6',
-        borderRadius: 6,
-        hoverBackgroundColor: '#007D80'
+        backgroundColor: scores.map(s =>
+          s >= 80 ? 'rgba(0, 131, 133, 0.9)' : s >= 60 ? 'rgba(0, 131, 133, 0.55)' : 'rgba(190, 18, 60, 0.75)'
+        ),
+        borderRadius: 4,
+        maxBarThickness: 32,
+        hoverBackgroundColor: '#006f71'
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
-        y: { beginAtZero: true, max: 100, ticks: { callback: v => '%' + v } },
-        x: { ticks: { font: { size: 10 } } }
+        y: {
+          min: 0,
+          max: 100,
+          grid: { color: 'rgba(15, 23, 42, 0.06)' },
+          border: { display: false },
+          ticks: {
+            stepSize: 20,
+            color: '#94a3b8',
+            font: { size: 10, weight: '600' },
+            callback: v => '%' + v
+          },
+          title: {
+            display: true,
+            text: 'Anlamsal benzerlik (%)',
+            color: '#64748b',
+            font: { size: 10, weight: '600' }
+          }
+        },
+        x: {
+          grid: { display: false },
+          border: { display: false },
+          ticks: {
+            color: '#334155',
+            font: { size: 10, weight: '600' },
+            maxRotation: 0,
+            minRotation: 0
+          }
+        }
       },
       plugins: {
-        legend: { display: false }
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => {
+              const i = items[0]?.dataIndex ?? 0;
+              return fullNames[i] || shortLabels[i] || '';
+            },
+            label: (ctx) => ` Anlamsal benzerlik: %${Number(ctx.raw || 0).toFixed(1)}`
+          }
+        }
       }
     }
   });
@@ -1237,29 +1584,103 @@ function escapeHtml(str) {
     .replace(/'/g, "&#039;");
 }
 
-// Mock Dönüştürme & Analiz Üreteci (Dinamik Kullanıcı Metni Uyumlu)
+/** API düşerse bile core yapıştırmayan yerel resmi rewrite (backend ile uyumlu). */
+function normalizeTrAscii(s) {
+  return String(s || '')
+    .replace(/İ/g, 'i').replace(/I/g, 'i').replace(/ı/g, 'i')
+    .replace(/Ş/g, 's').replace(/ş/g, 's')
+    .replace(/Ğ/g, 'g').replace(/ğ/g, 'g')
+    .replace(/Ü/g, 'u').replace(/ü/g, 'u')
+    .replace(/Ö/g, 'o').replace(/ö/g, 'o')
+    .replace(/Ç/g, 'c').replace(/ç/g, 'c')
+    .toLowerCase();
+}
+
+function composeInstitutionalRewrite(core) {
+  const raw = String(core || '').trim();
+  const low = normalizeTrAscii(raw);
+  const hasCimer = /c[iı]mer/i.test(raw);
+  const hasAi = /yapay zeka|algoritma|entegrasyon/.test(low);
+  const hasComplaint = /sikayet|dilekce|basvuru/.test(low);
+  const hasSpeed = /saniye|dakika|gunlerce|beklemeyecek|direkt|dusur/.test(low);
+  const hasIletisim = low.includes('iletisim baskanlig');
+  const hasKriz = /kriz masasi|dijital kriz|asilsiz haber|asilisiz haber|asilsiz paylasim|takip paneli|yonlendirme paneli/.test(low);
+  const hasValilik = low.includes('valilik');
+  const hasAfad = low.includes('afad');
+  const hasDeprem = /deprem|bilgilendirme hatt/.test(low);
+  const hasLastWeek = /gecen hafta|gecmis hafta/.test(low);
+  const hasLastTue = /gecen sali|gecmis sali/.test(low);
+
+  let title, s1, s2, s3, b1, b2, b3;
+  if (hasDeprem || hasAfad || (hasValilik && (hasKriz || hasSpeed))) {
+    title = 'Deprem Bilgilendirme Hattı ve Yönlendirme Panelinin Devreye Alınması';
+    const when = hasLastTue ? 'Geçtiğimiz salı' : (hasLastWeek ? 'Geçtiğimiz hafta' : 'Yakın dönemde');
+    s1 = `${when} Valilik koordinasyonunda başlatılan deprem bilgilendirme hattı çalışmaları bugün itibarıyla tamamlanmış ve uygulamaya alınmıştır.`;
+    s2 = 'Devreye alınan yönlendirme paneli sayesinde asılsız paylaşımlar dakikalar içinde tespit edilerek ilgili birimlerin ekranına yönlendirilmektedir.';
+    s3 = hasAfad
+      ? (hasIletisim
+        ? 'Böylelikle kamuoyu bilgilendirmesi hızlandırılmış; yarın AFAD ve yerel basınla ortak basın notu çalışmalarının koordinasyonu sürdürülecektir. Süreç İletişim Başkanlığı tarafından yakından takip edilmektedir.'
+        : 'Böylelikle kamuoyu bilgilendirmesi hızlandırılmış; yarın AFAD ve yerel basınla ortak basın notu çalışmalarının koordinasyonu sürdürülecektir.')
+      : 'Böylelikle kamuoyu bilgilendirmesi hızlandırılmış; valiliklerle ortak bilgilendirme koordinasyonu güçlendirilmiştir.';
+    b1 = 'Deprem bilgilendirme hattı uygulamaya alınmıştır';
+    b2 = 'Yönlendirme paneli asılsız paylaşımları dakikalar içinde yakalamaktadır';
+    b3 = hasAfad
+      ? 'AFAD ve yerel basınla ortak basın notu koordinasyonu sürdürülmektedir'
+      : 'Resmi kanallar üzerinden kamuoyu bilgilendirilmektedir';
+  } else if (hasKriz || (hasIletisim && hasSpeed)) {
+    title = 'Dijital Kriz Masası ve Takip Panelinin Devreye Alınması';
+    const when = hasLastWeek ? 'Geçtiğimiz hafta' : 'Yakın dönemde';
+    s1 = `${when} İletişim Başkanlığı bünyesinde başlatılan dijital kriz masası çalışmaları bugün itibarıyla tamamlanmış ve uygulamaya alınmıştır.`;
+    s2 = 'Devreye alınan takip paneli sayesinde sahadan gelen asılsız haber ve şüpheli paylaşımlar dakikalar içinde tespit edilerek ilgili birimlerin ekranına yönlendirilmektedir.';
+    s3 = hasValilik
+      ? 'Böylelikle kamuoyu bilgilendirmesi hızlandırılmış; yarın valiliklerle ortak basın notu çalışmalarının koordinasyonu sürdürülecektir.'
+      : 'Böylelikle kamuoyu bilgilendirmesi hızlandırılmış; kurumsal kapasite ve resmi iletişim süreçleri güçlendirilmiştir.';
+    b1 = 'İletişim Başkanlığı dijital kriz masası uygulamaya alınmıştır';
+    b2 = 'Takip paneli şüpheli paylaşımları dakikalar içinde yakalamaktadır';
+    b3 = hasValilik
+      ? 'Valiliklerle ortak basın notu koordinasyonu sürdürülmektedir'
+      : 'Resmi bilgilendirme kanalları üzerinden kamuoyu bilgilendirilmektedir';
+  } else if (hasCimer && (hasAi || hasComplaint || hasSpeed)) {
+    title = 'CİMER Yapay Zekâ Entegrasyonunun Tamamlanması';
+    s1 = 'Geçtiğimiz ay başlatılan CİMER yapay zekâ entegrasyonu çalışmaları bugün itibarıyla tamamlanmıştır.';
+    s2 = 'Devreye alınan sistem sayesinde vatandaşlarca iletilen şikâyet ve dilekçeler saniyeler içinde analiz edilerek ilgili bakanlık birimlerinin ekranına yönlendirilmektedir.';
+    s3 = 'Böylelikle başvuruların uzun süre bekletilmesinin önüne geçilmiş; kurumsal iş yükünün azaltılması ve kamu hizmetinin daha etkin sunulması sağlanmıştır.';
+    b1 = 'CİMER başvurularında yapay zekâ destekli yönlendirme devreye alınmıştır';
+    b2 = 'Başvuru iletim süresi günlerden saniyelere indirilmiştir';
+    b3 = 'İlgili bakanlık birimleriyle anlık veri aktarımı sağlanmıştır';
+  } else {
+    title = 'Kamuoyunu İlgilendiren Resmi Bilgilendirme';
+    s1 = 'İlgili birimlerimizce yürütülen çalışmalar bugün itibarıyla tamamlanmış ve uygulamaya alınmıştır.';
+    s2 = 'Süreç, ilgili kurumların koordinasyonunda planlı ve şeffaf biçimde yönetilmektedir.';
+    s3 = 'Bu çerçevede kurumsal kapasitenin güçlendirilmesi hedeflenmiş; kamuoyu bilgilendirmesi resmi kanallar üzerinden sürdürülecektir.';
+    b1 = 'Süreç ilgili birimler koordinasyonunda yürütülmektedir';
+    b2 = 'Uygulama takvimi planlı biçimde ilerletilmektedir';
+    b3 = 'Resmi bilgilendirme kanalları açık tutulmaktadır';
+  }
+  return { title, s1, s2, s3, b1, b2, b3 };
+}
+
+function buildChannelTextsFromRewrite(p) {
+  const { title, s1, s2, s3, b1, b2, b3 } = p;
+  return {
+    press_release: `T.C. İLETİŞİM BAŞKANLIĞI\nBASIN AÇIKLAMASI\n\nBAŞLIK\n${title}\n\n${s1} Söz konusu gelişme, kamuoyunun doğru bilgilendirilmesi amacıyla resmi kanallar üzerinden duyurulmaktadır. Süreç ilgili kurumların koordinasyonunda planlı biçimde yönetilmektedir.\n\n${s2} ${s3} Uygulamanın kapsamı ilgili birimlerce takip edilmekte; vatandaşları ilgilendiren hususlar şeffaflık ilkesi doğrultusunda paylaşılmaktadır.\n\nKamuoyunun güvenini esas alan yaklaşımımız çerçevesinde gelişmeler izlenecek; yeni bilgilendirmeler resmi hesaplarımızdan yapılacaktır. Vatandaşlarımızın yalnızca resmi kaynaklardan yapılan açıklamaları dikkate alması önem arz etmektedir.\n\nKamuoyuna saygıyla duyurulur.`,
+    agency_news: `FLAŞ\n\nBAŞLIK\n${title}\n\n${s1}\n\nANKARA - Yetkililerden yapılan açıklamaya göre, ${s1.replace(/^./, (c) => c.toLocaleLowerCase('tr-TR')).replace(/\.$/, '')}. Bildirime göre ${s2.replace(/^./, (c) => c.toLocaleLowerCase('tr-TR')).replace(/\.$/, '')}. ${s3}\n\nYetkililer, uygulamanın kamuoyunu ilgilendiren yönlerinin planlı biçimde yönetildiğini ifade etti. Konuya ilişkin güncel bilgilendirmelerin resmi kanallar üzerinden yapılacağı kaydedildi.`,
+    tabloid: `BAŞLIK\nGündeme damga vuran adım: ${title}\n\nSPOT\n${s1} Vatandaşlar süreci yakından izliyor.\n\nKamuoyunda geniş yankı uyandıran gelişmenin ardından resmi kaynaklar, sürecin kontrollü biçimde yönetildiğini vurguladı.\n\n${s2} ${s3}\n\nBundan sonra yapılacak açıklamaların resmi kanallardan paylaşılacağı belirtilirken, vatandaşların spekülatif bilgilere itibar etmemesi isteniyor.`,
+    x_twitter: `🚨 ${s1}\n\n📌 ÖZET: ${b1}.\n\n📋 DETAYLAR:\n- ${b2}\n- ${b3}\n- ${b1}\n\n📢 Lütfen yalnızca resmi duyuruları dikkate alınız.\n\n#Duyuru #Kamuoyu #ResmiBilgilendirme`,
+    linkedin: `Kurumsal iletişimin güven tesis eden gücü, doğru bilginin zamanında paylaşılmasıyla anlam kazanır.\n\n${s1}\n\n${s2} ${s3} Paydaşlarımızın doğru ve güncel bilgiye erişimi önceliğimizdir.\n\nÖne Çıkan Başlıklar:\n- ${b1}\n- ${b2}\n- ${b3}\n\nKurumsal sorumluluk bilinciyle süreci yakından takip ediyor; güvenilir iletişimi esas alıyoruz.\n\n#Kurumsalİletişim #Kamu #Şeffaflık`,
+    vertical_video: `VİDEO BAŞLIĞI: ${title}\n\nSAHNE 1 (0-3 sn)\nGÖRSEL: Resmi duyuru ekranı, kurumsal arka plan\nYAZI: ${/cimer/i.test(title) ? 'CİMER yapay zekâ duyurusu' : 'Önemli resmi duyuru'}\nSES: Dikkat, önemli bir resmi bilgilendirme var.\n\nSAHNE 2 (3-10 sn)\nGÖRSEL: Süreç ve birim görselleri\nYAZI: Ne değişti?\nSES: ${s1}\n\nSAHNE 3 (10-25 sn)\nGÖRSEL: Özet bilgi paneli\nYAZI: Nasıl çalışıyor?\nSES: ${s2}\n\nSAHNE 4 (25-40 sn)\nGÖRSEL: Takip çağrısı ekranı\nYAZI: Resmi kanalları takip edin\nSES: ${s3} Güncellemeler için yalnızca resmi hesapları takip edin.`,
+    messaging_chain: `⚠️ ÖNEMLİ BİLGİLENDİRME\n\nMerhaba,\n${s1}\n\n📌 Konu: ${title}\n\n📍 Bilmeniz Gerekenler:\n- ${b1}\n- ${b2}\n- ${b3}\n\nℹ️ Hatırlatma: Spekülatif paylaşımlara itibar etmeyiniz; güncel bilgiyi resmi kaynaklardan doğrulayınız.\n\n📲 Lütfen yalnızca doğru bilgiye ulaşılması amacıyla bu resmi bilgilendirme mesajını çevrenizle paylaşınız.`,
+    official_letter: `T.C.\nİLETİŞİM BAŞKANLIĞI\n\nSayı  : 75249013-010.06-E.2026/4108\nTarih : 02.08.2026\nKonu  : ${title} Hk.\n\nDAĞITIM YERLERİNE\n\n${s1} Söz konusu husus ilgili birimlerimizce değerlendirilmiş olup gerekli çalışmalar tamamlanmıştır.\n\n${s2} ${s3} Uygulamanın takibi ve koordinasyonu ilgili birimler tarafından yürütülecek; gelişmeler düzenli olarak paylaşılacaktır.\n\nBilgilerinizi ve gereğini arz/rica ederim.\n\n[Ad Soyad]\n[Unvan]`
+  };
+}
+
+// Mock Dönüştürme & Analiz Üreteci — core ASLA yapıştırılmaz
 function generateMockTransformation(core) {
-  const cleanCore = core && core.trim().length > 0 ? core.trim() : "Yoğun kar yağışı nedeniyle Elazığ genelinde yarın tüm okullar 1 gün süreyle tatil edilmiştir.";
-  const shortCore = cleanCore.length > 60 ? cleanCore.substring(0, 60) + '...' : cleanCore;
+  const cleanCore = core && core.trim().length > 0 ? core.trim() : 'Resmi bilgilendirme yapılacaktır.';
+  const texts = buildChannelTextsFromRewrite(composeInstitutionalRewrite(cleanCore));
 
   return {
-    transformedMessages: {
-      press_release: `T.C. CUMHURBAŞKANLIĞI İLETİŞİM BAŞKANLIĞI\nBASIN AÇIKLAMASI\n\n${cleanCore}\n\nKonuya ilişkin idari süreçler, saha koordinasyonu ve kamuoyunu bilgilendirme faaliyetleri 7/24 esasına göre yürütülmektedir.\n\nVatandaşlarımızın yalnızca resmi kanallardan yapılan duyurulara itibar etmeleri önemle rica olunur. Kamuoyuna saygıyla duyurulur.`,
-      
-      agency_news: `[SON DAKİKA HABERİ] ANKARA (AA) - Gelen son dakika bildirimine göre;\n\n"${cleanCore}"\n\nYetkililerden alınan bilgiye göre konuya ilişkin gerekli tüm tedbirler alınmış olup gelişmeler ajansımız tarafından yakından takip edilmektedir.`,
-      
-      tabloid: `FLAŞ FLAŞ FLAŞ! ÖNEMLİ GELİŞME KANATLANDI! 😱🔥\n\n"${cleanCore.toUpperCase()}"\n\nGelişme gündeme adeta bomba gibi düştü! Tüm gözler yetkililerden gelecek yeni açıklamalara çevrildi!`,
-      
-      x_twitter: `🚨 SON DAKİKA DUYURUSU 📌\n\n${cleanCore}\n\nResmi açıklamaları ve gelişmeleri anlık olarak hesabımızdan takip edebilirsiniz. 📢\n\n#SonDakika #ResmiDuyuru #Kamuİletişimi #Gündem`,
-      
-      linkedin: `Stratejik kamu iletişimi ve kurumsal yönetişim prensiplerimiz çerçevesinde önemli bilgilendirme:\n\n• ${cleanCore}\n\nKurumsal süreçlerimiz ve paydaş koordinasyonumuz kararlılıkla sürdürülmektedir.\n\n#Stratejikİletişim #KamuYönetimi #KurumsalYönetim #Liderlik`,
-      
-      vertical_video: `🎬 DİKEY VİDEO SENARYOSU (TikTok / Reels / Shorts)\n\n📌 [00:00 - 00:03] KANCA\nGörsel: Dikkat çekici resmi duyuru görseli\nEkran Metni: "ÖNEMLİ DUYURU!"\nDış Ses: "Arkadaşlar dikkat! ${shortCore}"\n\n📌 [00:03 - 00:08] GELİŞME\nEkran Metni: "${cleanCore}"\nDış Ses: "Resmi duyuruları takip etmeyi unutmayın!"`,
-      
-      messaging_chain: `Arkadaşlar bilginiz olsun resmi duyuru paylaşıldı: ${cleanCore} 📲 Haberi olmayan arkadaşlara ve WhatsApp gruplarına iletelim lütfen 👍`,
-      
-      official_letter: `T.C. CUMHURBAŞKANLIĞI İLETİŞİM BAŞKANLIĞI\n\nSayı  : E-75249013-010.06-2026/4108\nTarih : 30.07.2026\nKonu  : Kamuoyu Bilgilendirmesi ve İdari Kararlar Hk.\n\nİLGİLİ MAKAMA VE KURUM MÜDÜRLÜKLERİNE\n\n${cleanCore}\n\nGereğini ve bilgilerinizi önemle rica ederim.\n\nAyşe YILDIZ\nVali a. / Genel Sekreter V.`
-    },
+    transformedMessages: texts,
     analysisResults: [
       {
         channel: 'press_release', sim: 94.2, loss: 'Hayır', cta: 'Hayır', sentiment: 'POS', ambiguity: 'Düşük',
@@ -1713,10 +2134,6 @@ async function openHistoryPageDetail(id) {
           <h4 class="font-bold text-sm text-slate-800">Benchmark Kaydı</h4>
           <p class="text-sm text-slate-600">Doğruluk: <strong>%${item.report.overall_accuracy}</strong> — ${escapeHtml(item.report.grade || '')}</p>
           <p class="text-xs text-slate-500">${escapeHtml(item.report.summary || '')}</p>
-          <div class="flex flex-wrap gap-2">
-            <button onclick="loadHistoryBenchmarkIntoLab('${escapeHtml(id)}')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-[#00A3A6] hover:bg-[#007D80]">Lab'a Yükle</button>
-            <button onclick="switchToTab('lab')" class="px-3 py-1.5 rounded-lg text-xs font-bold text-[#00A3A6] bg-teal-50 border border-teal-200">Lab Sekmesi</button>
-          </div>
         </div>`;
       return;
     }
@@ -1860,6 +2277,18 @@ function renderOfficialDocument(channelId = 'press_release') {
   if (badge && seriousnessConfig[channelId]) {
     badge.textContent = seriousnessConfig[channelId].level;
     badge.className = `evrak-badge evrak-badge-${seriousnessConfig[channelId].tone}`;
+  }
+
+  const videoPanel = document.getElementById('official-video-tools');
+  if (videoPanel) {
+    if (channelId === VIDEO_CHANNEL_ID) {
+      videoPanel.classList.remove('hidden');
+      videoPanel.innerHTML = videoScenarioToolsHtml({ mountId: 'official-video-module-mount' });
+      initLucideIcons();
+    } else {
+      videoPanel.classList.add('hidden');
+      videoPanel.innerHTML = '';
+    }
   }
 
   if (channelId === 'official_letter') {
