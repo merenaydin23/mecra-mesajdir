@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mecra Mesajdır — T.C. Cumhurbaşkanlığı İletişim Başkanlığı İletişim Analiz Platformu</title>
+  <title>Mecra Mesajdır — Çoklu Mecra Mesaj Analiz Platformu</title>
   
-  <link rel="icon" type="image/png" href="https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/%C4%B0leti%C5%9Fim_Ba%C5%9Fkanl%C4%B1%C4%9F%C4%B1_logo.svg/64px-%C4%B0leti%C5%9Fim_Ba%C5%9Fkanl%C4%B1%C4%9F%C4%B1_logo.svg.png">
+  <link rel="icon" href="assets/brand-seal.svg" type="image/svg+xml">
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700;8..60,800&display=swap" rel="stylesheet">
   
   <script>
     (function() {
@@ -24,15 +24,15 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.1/dist/umd/lucide.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="styles.css?v=video-pdf1">
+  <link rel="stylesheet" href="styles.css?v=corp6">
 </head>
 <body class="text-[#0F172A] flex flex-col min-h-screen relative antialiased selection:bg-[#00A3A6] selection:text-white">
 
-  <!-- Kurumsal üst şerit -->
+  <!-- Üst şerit -->
   <div class="institutional-ribbon no-print">
     <div class="ribbon-inner">
-      <span class="ribbon-left">T.C. Cumhurbaşkanlığı İletişim Başkanlığı</span>
-      <span class="ribbon-right">Bilgi İşlem Dairesi Başkanlığı · 2026</span>
+      <span class="ribbon-left">Mecra Mesajdır · Analitik Platform</span>
+      <span class="ribbon-right">Çoklu mecra dönüşüm · NLP denetim · 2026</span>
     </div>
   </div>
 
@@ -41,16 +41,16 @@
     <div class="corp-header-inner">
       <div class="corp-header-top">
         <div class="corp-brand">
-          <div class="logo-seal">
-            <img src="assets/cib-logo.png" alt="T.C. İletişim Başkanlığı Logo">
+          <div class="brand-seal" aria-hidden="true">
+            <img src="assets/brand-seal.svg" alt="">
           </div>
           <div class="corp-brand-text">
-            <p class="brand-eyebrow">Resmi kurumsal iletişim analiz platformu</p>
+            <p class="brand-eyebrow">Çoklu mecra iletişim analiz platformu</p>
             <div class="corp-brand-title-row">
               <h1>Mecra Mesajdır</h1>
-              <span class="corp-badge">Resmi</span>
+              <span class="corp-badge">Platform</span>
             </div>
-            <p class="corp-brand-sub">Çoklu mecra dönüşüm ve NLP analiz sistemi</p>
+            <p class="corp-brand-sub">Tek çekirdek mesaj → sekiz mecra → ölçülebilir analiz</p>
           </div>
         </div>
 
@@ -81,7 +81,7 @@
         </button>
         <button data-tab="official-doc" class="nav-tab-btn" type="button">
           <i data-lucide="file-text" class="w-3.5 h-3.5 shrink-0 text-red-600"></i>
-          <span>Kurumsal Evrak</span>
+          <span>Evrak</span>
         </button>
         <button data-tab="theory" class="nav-tab-btn" type="button">
           <i data-lucide="book-open" class="w-3.5 h-3.5 shrink-0"></i>
@@ -117,37 +117,36 @@
     <!-- =================================================================== -->
     <div id="page-dashboard" class="tab-page space-y-8">
       
-      <section class="hero-institutional p-6 sm:p-8">
-        <div class="max-w-4xl relative z-10 space-y-4">
-          <div class="flex items-center gap-3">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/%C4%B0leti%C5%9Fim_Ba%C5%9Fkanl%C4%B1%C4%9F%C4%B1_logo.svg/1280px-%C4%B0leti%C5%9Fim_Ba%C5%9Fkanl%C4%B1%C4%9F%C4%B1_logo.svg.png"
-                 alt="Logo" class="h-12 w-auto object-contain drop-shadow-md bg-white/95 rounded-xl p-1.5 border border-white/40">
+      <section class="hero-institutional p-6 sm:p-9">
+        <div class="max-w-4xl relative z-10 space-y-5">
+          <div class="hero-brand-row">
+            <div class="brand-seal brand-seal--hero" aria-hidden="true">
+              <img src="assets/brand-seal.svg" alt="">
+            </div>
             <div>
-              <p class="text-[10px] font-bold tracking-[0.2em] uppercase text-teal-100/90">Kurumsal İletişim Analitik Motoru</p>
-              <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-                Mecra Mesajdır
-              </h2>
+              <p class="hero-kicker">İletişim Analitik Motoru</p>
+              <h2 class="hero-title">Mecra Mesajdır</h2>
             </div>
           </div>
 
-          <p class="text-teal-50/90 text-sm leading-relaxed max-w-2xl">
-            Ana mesajınızı 8 platforma çevirin. Sonra Analiz sayfasında anlam aynı mı, bilgi kayıp mı, çağrı var mı diye netçe görün.
+          <p class="hero-lead">
+            Ana mesajınızı 8 platforma çevirin. Analiz sayfasında anlam aynı mı, bilgi kayıp mı, çağrı var mı diye netçe görün.
           </p>
 
           <div class="pt-1">
             <label for="core-message-input" class="block text-[11px] font-bold uppercase tracking-wider text-teal-100/80 mb-2">Çekirdek Mesaj</label>
             <textarea id="core-message-input" rows="4" 
-              class="w-full p-4 rounded-xl border border-white/20 bg-white text-slate-800 placeholder-slate-400 text-sm shadow-inner outline-none focus:ring-2 focus:ring-white/50 transition-all resize-y font-sans"
+              class="w-full p-4 rounded-xl border border-white/20 bg-white text-slate-800 placeholder-slate-400 text-sm shadow-inner outline-none focus:ring-2 focus:ring-white/50 transition-all resize-y"
               placeholder="Çekirdek mesajınızı buraya yazın…"></textarea>
           </div>
 
-          <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+          <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
             <div class="flex flex-wrap items-center gap-3">
-              <span class="text-xs text-teal-50/85 font-semibold flex items-center gap-1.5">
+              <span class="hero-chip">
                 <i data-lucide="shield-check" class="w-4 h-4"></i>
-                <span>Kurumsal güvenlik · Olgu koruma · Guardrail aktif</span>
+                <span>Olgu koruma · Guardrail aktif</span>
               </span>
-              <button onclick="openHistoryModal()" class="text-xs font-bold text-white/90 hover:text-white flex items-center gap-1 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-md border border-white/20 transition-colors">
+              <button onclick="openHistoryModal()" class="hero-ghost-btn" type="button">
                 <i data-lucide="clock" class="w-3.5 h-3.5"></i>
                 <span>Geçmişi Yönet</span>
               </button>
@@ -163,13 +162,15 @@
       <section class="space-y-4">
         <div class="flex items-center justify-between gap-3 flex-wrap">
           <div class="section-seal">
-            <img src="assets/cib-logo.png" alt="T.C. İletişim Başkanlığı">
+            <div class="brand-seal brand-seal--sm" aria-hidden="true">
+              <img src="assets/brand-seal.svg" alt="">
+            </div>
             <div>
-              <h3 class="text-lg font-bold text-[#0F172A] leading-tight">Dönüştürülmüş Mecra Mesajları</h3>
-              <p class="text-[11px] text-slate-500 font-medium mt-0.5">Analiz sonrası her mecra için üretilen resmi çıktılar burada görünür.</p>
+              <h3 class="section-heading">Dönüştürülmüş Mecra Mesajları</h3>
+              <p class="section-sub">Analiz sonrası her mecra için üretilen çıktılar burada görünür.</p>
             </div>
           </div>
-          <span class="text-[11px] text-slate-600 font-bold uppercase tracking-wide bg-white border border-slate-200 px-3 py-1.5 rounded-md">8 Mecra · Guardrail Aktif</span>
+          <span class="section-pill">8 Mecra · Guardrail Aktif</span>
         </div>
         <div id="platform-cards-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"></div>
       </section>
@@ -182,9 +183,7 @@
       
       <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 corporate-card p-6">
         <div class="flex items-start gap-3">
-          <div class="logo-seal shrink-0">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/%C4%B0leti%C5%9Fim_Ba%C5%9Fkanl%C4%B1%C4%9F%C4%B1_logo.svg/1280px-%C4%B0leti%C5%9Fim_Ba%C5%9Fkanl%C4%B1%C4%9F%C4%B1_logo.svg.png" alt="Logo" class="!h-10">
-          </div>
+          <div class="brand-seal brand-seal--sm shrink-0" aria-hidden="true"><img src="assets/brand-seal.svg" alt=""></div>
           <div>
             <p class="brand-eyebrow mb-1">Sonuçlar</p>
             <h2 class="text-xl font-bold text-[#0F172A]">Mesaj ne kadar doğru aktarıldı?</h2>
@@ -400,13 +399,11 @@
       <section class="corporate-card p-6 sm:p-8 space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div class="flex items-start gap-3">
-            <div class="logo-seal shrink-0">
-              <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/%C4%B0leti%C5%9Fim_Ba%C5%9Fkanl%C4%B1%C4%9F%C4%B1_logo.svg/1280px-%C4%B0leti%C5%9Fim_Ba%C5%9Fkanl%C4%B1%C4%9F%C4%B1_logo.svg.png" alt="" class="!h-10">
-            </div>
+            <div class="brand-seal brand-seal--sm shrink-0" aria-hidden="true"><img src="assets/brand-seal.svg" alt=""></div>
             <div>
-              <p class="brand-eyebrow mb-1">Kurumsal Arşiv</p>
+              <p class="brand-eyebrow mb-1">Arşiv</p>
               <h2 class="text-2xl font-extrabold text-[#0F172A] tracking-tight">Geçmiş Analizler & Benchmark Kayıtları</h2>
-              <p class="text-sm text-slate-600 mt-1">Resmi analiz oturumlarını inceleyin ve detayları görüntüleyin.</p>
+              <p class="text-sm text-slate-600 mt-1">Analiz oturumlarını inceleyin ve detayları görüntüleyin.</p>
             </div>
           </div>
           <button onclick="loadHistoryPage()" class="btn-primary px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shrink-0">
@@ -457,14 +454,12 @@
       <section class="evrak-page-header no-print">
         <div class="evrak-header-main">
           <div class="evrak-header-brand">
-            <div class="evrak-logo-seal">
-              <img src="assets/cib-logo.png" alt="T.C. İletişim Başkanlığı">
-            </div>
+            <div class="brand-seal" aria-hidden="true"><img src="assets/brand-seal.svg" alt=""></div>
             <div class="evrak-header-text">
-              <p class="evrak-kicker">T.C. Cumhurbaşkanlığı İletişim Başkanlığı</p>
-              <h2>Kurumsal Evrak</h2>
+              <p class="evrak-kicker">Mecra Mesajdır</p>
+              <h2>Evrak Önizleme</h2>
               <p class="evrak-header-desc">
-                Dönüştürülmüş mecra metninin resmi belge önizlemesi, kopyalama ve yazdırma işlemleri.
+                Dönüştürülmüş mecra metninin belge önizlemesi, kopyalama ve yazdırma işlemleri.
               </p>
             </div>
           </div>
@@ -513,26 +508,25 @@
 
       <div class="evrak-paper-stage">
         <div id="press-release-paper" class="bg-white w-full max-w-[800px] p-8 md:p-14 shadow-2xl rounded-sm border border-slate-300 text-slate-900 font-serif relative">
-          <img src="assets/cib-logo.png" alt="" class="document-watermark">
-          <div class="text-center pb-5 mb-6 relative z-10" style="border-bottom: 3px double #b30000;">
+          <div class="text-center pb-5 mb-6 relative z-10" style="border-bottom: 3px double #0F172A;">
             <div class="flex items-center justify-center mb-3">
-              <img src="assets/cib-logo.png" alt="T.C. İletişim Başkanlığı Logo" class="h-20 w-auto object-contain">
+              <div class="brand-seal brand-seal--doc" aria-hidden="true"><img src="assets/brand-seal.svg" alt=""></div>
             </div>
-            <div class="text-sm font-bold tracking-wider text-slate-800 uppercase font-sans">T.C. CUMHURBAŞKANLIĞI İLETİŞİM BAŞKANLIĞI</div>
-            <div class="text-xs font-semibold text-slate-600 uppercase tracking-widest mt-1 font-sans">Basın ve Yayın Dairesi Başkanlığı</div>
-            <div class="text-xl font-extrabold uppercase mt-4 tracking-widest text-[#b30000] font-sans">BASIN AÇIKLAMASI</div>
+            <div class="text-sm font-bold tracking-wider text-slate-800 uppercase font-sans">Mecra Mesajdır</div>
+            <div class="text-xs font-semibold text-slate-600 uppercase tracking-widest mt-1 font-sans">Çoklu Mecra Mesaj Platformu</div>
+            <div class="text-xl font-extrabold uppercase mt-4 tracking-widest text-[#0F172A] font-sans">BASIN AÇIKLAMASI</div>
           </div>
           <div class="flex items-center justify-between text-xs font-bold text-slate-700 mb-6 pb-2 border-b border-slate-200 font-sans">
             <div>Tarih: <span id="draft-date" contenteditable="true" class="editable-field">02.08.2026</span></div>
-            <div>Sayı: <span id="draft-number" contenteditable="true" class="editable-field">B.02.1.İMB.0.10/2026-4108</span></div>
+            <div>Sayı: <span id="draft-number" contenteditable="true" class="editable-field">MM-2026-4108</span></div>
           </div>
           <div id="draft-content-editable" contenteditable="true" class="text-sm md:text-base leading-relaxed text-justify space-y-4 min-h-[380px] outline-none editable-content p-2 rounded text-slate-900 relative z-10">
-            <p>Dönüşüm yaptıktan sonra buraya seçili mecranın kurumsal evrak önizlemesi gelecektir.</p>
+            <p>Dönüşüm yaptıktan sonra buraya seçili mecranın evrak önizlemesi gelecektir.</p>
             <p class="font-semibold text-right mt-6">Kamuoyuna saygıyla duyurulur.</p>
           </div>
           <div class="mt-14 pt-4 border-t border-slate-300 text-center text-[11px] text-slate-500 font-sans space-y-1 relative z-10">
-            <div class="font-bold text-slate-700">T.C. CUMHURBAŞKANLIĞI İLETİŞİM BAŞKANLIĞI</div>
-            <div>Ziyagökalp Caddesi No: 43 Çankaya / ANKARA · basin@iletisim.gov.tr · Tel: 0312 590 20 00</div>
+            <div class="font-bold text-slate-700">Mecra Mesajdır</div>
+            <div>Çoklu mecra mesaj dönüşüm ve analiz çıktısı</div>
           </div>
         </div>
       </div>
@@ -543,7 +537,7 @@
     <!-- =================================================================== -->
     <div id="page-theory" class="tab-page hidden space-y-6 max-w-3xl mx-auto py-2">
       <header class="space-y-2 border-b border-slate-200 pb-5">
-        <p class="brand-eyebrow">Kuramsal çerçeve · T.C. İletişim Başkanlığı</p>
+        <p class="brand-eyebrow">Kuramsal çerçeve · Mecra Mesajdır</p>
         <h2 class="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">Kuram</h2>
         <p class="text-lg font-semibold text-[#008385]">“The medium is the message.”</p>
         <p class="text-slate-600 text-sm sm:text-base leading-relaxed">
@@ -612,14 +606,12 @@
       
       <div class="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-teal-50/40">
         <div class="flex items-center space-x-3">
-          <div class="logo-seal shrink-0">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/%C4%B0leti%C5%9Fim_Ba%C5%9Fkanl%C4%B1%C4%9F%C4%B1_logo.svg/1280px-%C4%B0leti%C5%9Fim_Ba%C5%9Fkanl%C4%B1%C4%9F%C4%B1_logo.svg.png" alt="" class="!h-9">
-          </div>
+          <div class="brand-seal brand-seal--sm shrink-0" aria-hidden="true"><img src="assets/brand-seal.svg" alt=""></div>
           <div id="modal-icon-box" class="p-2 rounded-xl bg-white text-[#00A3A6] border border-teal-100 flex items-center justify-center shrink-0 shadow-sm">
             <i id="modal-icon" data-lucide="newspaper" class="w-5 h-5"></i>
           </div>
           <div>
-            <p class="brand-eyebrow mb-0.5">T.C. İletişim Başkanlığı</p>
+            <p class="brand-eyebrow mb-0.5">Mecra Mesajdır</p>
             <h3 id="modal-title" class="text-lg font-bold text-[#0F172A]">Mecra Detayı</h3>
             <span id="modal-category" class="text-xs font-medium text-slate-500">Mecra Kategorisi</span>
           </div>
@@ -632,7 +624,7 @@
       <div class="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
         <div>
           <div class="flex items-center justify-between mb-2">
-            <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-500">Dönüştürülmüş Kurumsal İçerik</h4>
+            <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-500">Dönüştürülmüş İçerik</h4>
             <button id="modal-copy-btn" class="text-xs font-semibold text-[#00A3A6] hover:text-[#007D80] flex items-center gap-1">
               <i data-lucide="copy" class="w-3.5 h-3.5"></i>
               <span>Metni Kopyala</span>
@@ -664,7 +656,7 @@
       </div>
 
       <div class="flex items-center justify-between p-4 px-6 border-t border-slate-100 bg-slate-50/50">
-        <span class="text-xs text-slate-500 font-semibold">T.C. İletişim Başkanlığı</span>
+        <span class="text-xs text-slate-500 font-semibold">Mecra Mesajdır</span>
         <div class="flex items-center space-x-3">
           <button id="modal-diff-btn" class="px-4 py-2 rounded-lg text-xs font-bold text-[#00A3A6] bg-teal-50 hover:bg-teal-100 border border-teal-200 transition-colors flex items-center gap-1.5">
             <i data-lucide="git-compare" class="w-4 h-4"></i>
@@ -723,10 +715,7 @@
   <footer class="corp-footer text-slate-300 py-8 z-10 mt-auto no-print">
     <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-5">
       <div class="flex items-center gap-3">
-        <div class="bg-white rounded-xl p-2 border border-white/20 shadow-md">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/%C4%B0leti%C5%9Fim_Ba%C5%9Fkanl%C4%B1%C4%9F%C4%B1_logo.svg/1280px-%C4%B0leti%C5%9Fim_Ba%C5%9Fkanl%C4%B1%C4%9F%C4%B1_logo.svg.png"
-               alt="T.C. İletişim Başkanlığı" class="h-12 w-auto object-contain">
-        </div>
+        <div class="brand-seal brand-seal--footer" aria-hidden="true"><img src="assets/brand-seal.svg" alt=""></div>
         <div class="text-left text-xs leading-relaxed">
           <p class="text-white font-bold text-sm">T.C. Cumhurbaşkanlığı İletişim Başkanlığı</p>
           <p class="text-slate-400 font-medium">Bilgi İşlem Dairesi Başkanlığı · Mecra Mesajdır Analitik Platformu</p>
@@ -739,6 +728,6 @@
     </div>
   </footer>
 
-  <script src="app.js?v=video-pdf2"></script>
+  <script src="app.js?v=corp6"></script>
 </body>
 </html>

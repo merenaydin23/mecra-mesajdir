@@ -1,6 +1,5 @@
 /**
- * Mecra Mesajdır - T.C. Cumhurbaşkanlığı İletişim Başkanlığı
- * Ön Yüz İnteraktif Mantık ve Grafik Yöneticisi
+ * Mecra Mesajdır — Ön Yüz İnteraktif Mantık ve Grafik Yöneticisi
  */
 
 // Uygulama Durum Yönetimi (Application State)
@@ -18,23 +17,20 @@ const appState = {
   lastBenchmark: null
 };
 
-// Mecra Tanımları, İkonları ve Kurumsal Logoları
-const CIB_LOGO_URL = 'assets/cib-logo.png';
+// Mecra Tanımları ve İkonları
 const VIDEO_CHANNEL_ID = 'vertical_video';
 
 const PLATFORMS_CONFIG = [
   { 
     id: 'press_release', 
     name: 'Basın Açıklaması', 
-    category: 'Kurumsal Devlet', 
-    logoUrl: CIB_LOGO_URL,
+    category: 'Resmi Duyuru', 
     icon: 'file-text'
   },
   { 
     id: 'official_letter', 
     name: 'Resmi Yazı / Dilekçe', 
     category: 'Resmi Bürokrasi', 
-    logoUrl: CIB_LOGO_URL,
     icon: 'landmark'
   },
   { 
@@ -549,31 +545,9 @@ async function runTransformationAndAnalysis(coreText) {
   };
 
   try {
+    // Proofread ayrı istek AbortError üretiyordu; transform zaten skip_proofread kullanıyor
     let workingCore = (coreText || '').trim();
-    try {
-      const proofTO = withTimeout(25000);
-      const proofRes = await fetch('/api/proofread', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: workingCore, author: 'Kamu Görevlisi' }),
-        signal: proofTO.signal
-      });
-      proofTO.clear();
-      if (proofRes.ok) {
-        const proofData = await proofRes.json();
-        workingCore = stripProofreadLabel(proofData.core_message || workingCore);
-        appState.coreMessage = workingCore;
-        const coreInputEl = document.getElementById('core-message-input');
-        if (coreInputEl) {
-          coreInputEl.value = workingCore;
-          coreInputEl.classList.add('ring-2', 'ring-[#00A3A6]');
-          setTimeout(() => coreInputEl.classList.remove('ring-2', 'ring-[#00A3A6]'), 1200);
-        }
-      }
-    } catch (proofErr) {
-      console.warn('Yazım düzeltme atlandı:', proofErr);
-    }
-
+    appState.coreMessage = workingCore;
     saveToHistory(workingCore);
 
     const transformTO = withTimeout(150000);
@@ -610,7 +584,7 @@ async function runTransformationAndAnalysis(coreText) {
       showToast('Dönüşüm tamamlandı — analiz sürüyor.', 'success');
 
       try {
-        const analyzeTO = withTimeout(120000);
+        const analyzeTO = withTimeout(240000);
         const analyzeRes = await fetch('/api/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -798,9 +772,9 @@ function renderPlatformCards() {
           ${metaHtml}
           ${platform.id === VIDEO_CHANNEL_ID && hasContent ? `
           <div class="platform-video-actions" onclick="event.stopPropagation()">
-            <button type="button" class="platform-action-btn platform-action-btn--video" onclick="openExpandedCardModal('${platform.id}'); setTimeout(()=>openVideoCreateModule('modal-video-module-mount'),220)" title="Video oluştur">
+            <button type="button" class="platform-action-btn platform-action-btn--video" onclick="openVideoFromCard()" title="Video üret">
               <svg class="platform-action-ico" viewBox="0 0 24 24" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/></svg>
-              <span>Video</span>
+              <span>Video Üret</span>
             </button>
           </div>` : ''}
           <div class="platform-action-row">
@@ -936,9 +910,9 @@ function videoScenarioToolsHtml(opts = {}) {
     <div class="video-scenario-tools ${compact ? 'video-scenario-tools--compact' : ''}" data-video-tools>
       <div class="video-scenario-tools__head">
         <div>
-          <p class="video-scenario-tools__kicker">Dikey video prodüksiyon</p>
+          <p class="video-scenario-tools__kicker">Dikey video</p>
           <h4 class="video-scenario-tools__title">Senaryo çıktıları</h4>
-          <p class="video-scenario-tools__desc">PDF olarak indirin veya video üretim modülünü açın.</p>
+          <p class="video-scenario-tools__desc">PDF indirin veya dikey video önizlemesini oynatın.</p>
         </div>
         <div class="video-scenario-tools__actions">
           <button type="button" class="video-tool-btn video-tool-btn--pdf" onclick="event.stopPropagation(); downloadVideoScenarioPdf()" ${hasScript ? '' : 'disabled'}>
@@ -947,21 +921,117 @@ function videoScenarioToolsHtml(opts = {}) {
           </button>
           <button type="button" class="video-tool-btn video-tool-btn--create" onclick="event.stopPropagation(); openVideoCreateModule('${mountId}')" ${hasScript ? '' : 'disabled'}>
             <i data-lucide="clapperboard" class="w-4 h-4"></i>
-            <span>Video Oluştur</span>
+            <span>Video Üret</span>
           </button>
         </div>
       </div>
-      <div id="${mountId}" class="video-module-mount" hidden data-open="0" aria-live="polite">
-        <div class="video-module-mount__placeholder">
-          <p class="font-semibold text-slate-700 text-sm">Video modülü yuvası</p>
-          <p class="text-xs text-slate-500 mt-1 leading-relaxed">
-            Kendi video üretim arayüzünüzü buraya gömün.
-            Örnek: <code class="text-[11px] bg-slate-100 px-1 rounded">document.getElementById('${mountId}').appendChild(yourWidget)</code>
-            veya <code class="text-[11px] bg-slate-100 px-1 rounded">window.MecraVideoModule.mount(el)</code>
-          </p>
+      <div id="${mountId}" class="video-module-mount" hidden data-open="0" aria-live="polite"></div>
+    </div>`;
+}
+
+function openVideoFromCard() {
+  openExpandedCardModal(VIDEO_CHANNEL_ID);
+  setTimeout(() => openVideoCreateModule('modal-video-module-mount'), 300);
+}
+
+function buildVideoPlayerHtml(parsed) {
+  const scenes = parsed.scenes.length
+    ? parsed.scenes
+    : [{ head: 'Sahne 1', gorsel: 'Dikey duyuru çerçevesi', yazi: parsed.title || 'Duyuru', ses: parsed.raw.slice(0, 180) || 'Senaryo metni' }];
+  const sceneCards = scenes.map((s, i) => `
+    <button type="button" class="video-scene-chip ${i === 0 ? 'is-active' : ''}" data-scene-idx="${i}" onclick="jumpVideoScene(${i})">
+      ${escapeHtml(s.head || ('Sahne ' + (i + 1)))}
+    </button>`).join('');
+  return `
+    <div class="video-player" data-scene-count="${scenes.length}">
+      <div class="video-player__phone">
+        <div class="video-player__screen" id="video-player-screen">
+          <div class="video-player__overlay">
+            <p class="video-player__badge">Dikey Video Önizleme</p>
+            <p class="video-player__scene-label" id="video-player-scene-label">${escapeHtml(scenes[0].head || 'Sahne 1')}</p>
+            <p class="video-player__ontext" id="video-player-ontext">${escapeHtml(scenes[0].yazi || '—')}</p>
+            <p class="video-player__visual" id="video-player-visual">${escapeHtml(scenes[0].gorsel || '—')}</p>
+          </div>
+          <div class="video-player__progress"><span id="video-player-progress"></span></div>
         </div>
       </div>
+      <div class="video-player__side">
+        <h5 class="video-player__title">${escapeHtml(parsed.title || 'Dikey Video Senaryosu')}</h5>
+        <p class="video-player__voice" id="video-player-voice"><strong>Ses:</strong> ${escapeHtml(scenes[0].ses || '—')}</p>
+        <div class="video-player__chips">${sceneCards}</div>
+        <div class="video-player__controls">
+          <button type="button" class="video-tool-btn video-tool-btn--create" id="video-play-btn" onclick="toggleVideoPreview()">
+            <i data-lucide="play" class="w-4 h-4"></i>
+            <span>Oynat</span>
+          </button>
+          <button type="button" class="video-tool-btn video-tool-btn--pdf" onclick="downloadVideoScenarioPdf()">
+            <i data-lucide="file-down" class="w-4 h-4"></i>
+            <span>PDF</span>
+          </button>
+        </div>
+        <p class="video-player__hint">Sahne sahne dikey önizleme — senaryoyu PDF olarak da indirebilirsiniz.</p>
+      </div>
     </div>`;
+}
+
+let _videoPreviewTimer = null;
+let _videoPreviewIdx = 0;
+let _videoPreviewScenes = [];
+
+function renderVideoScene(idx) {
+  if (!_videoPreviewScenes.length) return;
+  const i = ((idx % _videoPreviewScenes.length) + _videoPreviewScenes.length) % _videoPreviewScenes.length;
+  _videoPreviewIdx = i;
+  const s = _videoPreviewScenes[i];
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  set('video-player-scene-label', s.head || `Sahne ${i + 1}`);
+  set('video-player-ontext', s.yazi || '—');
+  set('video-player-visual', s.gorsel || '—');
+  const voice = document.getElementById('video-player-voice');
+  if (voice) voice.innerHTML = `<strong>Ses:</strong> ${escapeHtml(s.ses || '—')}`;
+  document.querySelectorAll('.video-scene-chip').forEach((chip, ci) => {
+    chip.classList.toggle('is-active', ci === i);
+  });
+  const bar = document.getElementById('video-player-progress');
+  if (bar) bar.style.width = `${((i + 1) / _videoPreviewScenes.length) * 100}%`;
+}
+
+function jumpVideoScene(idx) {
+  stopVideoPreview(false);
+  renderVideoScene(idx);
+}
+
+function stopVideoPreview(resetBtn = true) {
+  if (_videoPreviewTimer) {
+    clearInterval(_videoPreviewTimer);
+    _videoPreviewTimer = null;
+  }
+  if (resetBtn) {
+    const btn = document.getElementById('video-play-btn');
+    if (btn) btn.innerHTML = `<i data-lucide="play" class="w-4 h-4"></i><span>Oynat</span>`;
+    initLucideIcons();
+  }
+}
+
+function toggleVideoPreview() {
+  const btn = document.getElementById('video-play-btn');
+  if (_videoPreviewTimer) {
+    stopVideoPreview(true);
+    return;
+  }
+  if (!_videoPreviewScenes.length) return;
+  if (btn) btn.innerHTML = `<i data-lucide="pause" class="w-4 h-4"></i><span>Durdur</span>`;
+  initLucideIcons();
+  _videoPreviewTimer = setInterval(() => {
+    const next = _videoPreviewIdx + 1;
+    if (next >= _videoPreviewScenes.length) {
+      stopVideoPreview(true);
+      renderVideoScene(0);
+      showToast('Önizleme tamamlandı.', 'success');
+      return;
+    }
+    renderVideoScene(next);
+  }, 2200);
 }
 
 function parseVideoScenes(raw) {
@@ -1021,8 +1091,8 @@ function downloadVideoScenarioPdf() {
       @media print { .noprint { display: none !important; } }
     </style></head><body>
       <div class="brand">
-        <div class="org">T.C. Cumhurbaşkanlığı İletişim Başkanlığı</div>
-        <div class="org" style="font-weight:600;margin-top:2px">Basın ve Yayın Dairesi Başkanlığı</div>
+        <div class="org">Mecra Mesajdır</div>
+        <div class="org" style="font-weight:600;margin-top:2px">Dikey Video Senaryo Çıktısı</div>
         <h1>DİKEY VİDEO PRODÜKSİYON SENARYO BELGESİ</h1>
       </div>
       <div class="meta"><span>Tarih: ${today}</span><span>Belge: TikTok / Reels Senaryosu</span></div>
@@ -1051,21 +1121,37 @@ function openVideoCreateModule(mountId = 'video-module-mount') {
   }
   const mount = document.getElementById(mountId);
   if (!mount) {
-    showToast('Video modül yuvası bulunamadı.', 'error');
+    showToast('Video alanı bulunamadı. Detay modalını açıp tekrar deneyin.', 'error');
     return;
   }
   const opening = mount.getAttribute('data-open') !== '1';
-  mount.hidden = !opening;
-  mount.setAttribute('data-open', opening ? '1' : '0');
-  if (opening) {
-    mount.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    const detail = { scenario, channel: VIDEO_CHANNEL_ID, mountId, mount };
-    window.dispatchEvent(new CustomEvent('mecra:open-video-module', { detail }));
-    if (typeof window.MecraVideoModule?.onOpen === 'function') {
-      try { window.MecraVideoModule.onOpen(detail); } catch (e) { console.warn(e); }
-    }
-    showToast('Video oluşturma alanı açıldı — modülünüzü bu yuvaya gömebilirsiniz.', 'info');
+  if (!opening) {
+    stopVideoPreview(true);
+    mount.hidden = true;
+    mount.setAttribute('data-open', '0');
+    mount.innerHTML = '';
+    return;
   }
+
+  const parsed = parseVideoScenes(scenario);
+  _videoPreviewScenes = parsed.scenes.length
+    ? parsed.scenes
+    : [{ head: 'Sahne 1', gorsel: 'Dikey duyuru çerçevesi', yazi: parsed.title || 'Duyuru', ses: parsed.raw.slice(0, 180) || 'Senaryo metni' }];
+  _videoPreviewIdx = 0;
+  stopVideoPreview(false);
+  mount.hidden = false;
+  mount.setAttribute('data-open', '1');
+  mount.innerHTML = buildVideoPlayerHtml(parsed);
+  renderVideoScene(0);
+  mount.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  initLucideIcons();
+
+  const detail = { scenario, channel: VIDEO_CHANNEL_ID, mountId, mount, scenes: _videoPreviewScenes };
+  window.dispatchEvent(new CustomEvent('mecra:open-video-module', { detail }));
+  if (typeof window.MecraVideoModule?.onOpen === 'function') {
+    try { window.MecraVideoModule.onOpen(detail); } catch (e) { console.warn(e); }
+  }
+  showToast('Video önizleme açıldı — Oynat ile sahne sahne izleyin.', 'success');
 }
 
 window.MecraVideoModule = {
@@ -1073,7 +1159,7 @@ window.MecraVideoModule = {
   getScenario: getVideoScenarioText,
   downloadPdf: downloadVideoScenarioPdf,
   open: openVideoCreateModule,
-  /** Kendi widget'ınızı yuvaya yerleştirin */
+  fromCard: openVideoFromCard,
   mount(node, mountId = 'video-module-mount') {
     const el = document.getElementById(mountId);
     if (!el || !node) return false;
@@ -1552,7 +1638,6 @@ function showToast(message, type = 'info') {
   };
 
   toast.innerHTML = `
-    <img src="${CIB_LOGO_URL}" alt="" class="toast-logo">
     <i data-lucide="${iconMap[type] || 'info'}" class="w-4 h-4 text-[#00A3A6] shrink-0"></i>
     <span class="text-sm font-medium">${escapeHtml(message)}</span>
   `;
@@ -2261,7 +2346,6 @@ function renderOfficialDocument(channelId = 'press_release') {
 
   const rawMsg = appState.transformedMessages[channelId] || appState.coreMessage || 'Henüz dönüşüm yapılmadı.';
   const todayStr = getTodayFormattedDate();
-  const logoUrl = CIB_LOGO_URL;
 
   const seriousnessConfig = {
     official_letter: { level: 'Resmiyet Seviyesi: %100 (Kamu Bürokrasisi)', tone: 'red' },
@@ -2293,52 +2377,50 @@ function renderOfficialDocument(channelId = 'press_release') {
 
   if (channelId === 'official_letter') {
     paper.innerHTML = `
-      <img src="${logoUrl}" alt="" class="document-watermark">
       <div class="text-center pb-5 mb-6 relative z-10" style="border-bottom: 3px double #0F172A;">
         <div class="flex items-center justify-center mb-3">
-          <img src="${logoUrl}" alt="Logo" class="h-16 w-auto object-contain">
+          <div class="brand-seal brand-seal--doc" aria-hidden="true"><img src="assets/brand-seal.svg" alt=""></div>
         </div>
-        <div class="text-sm font-bold tracking-wider text-slate-800 uppercase font-sans">T.C. CUMHURBAŞKANLIĞI İLETİŞİM BAŞKANLIĞI</div>
-        <div class="text-xs font-semibold text-slate-600 uppercase tracking-widest mt-1 font-sans">Basın ve Yayın Dairesi Başkanlığı</div>
+        <div class="text-sm font-bold tracking-wider text-slate-800 uppercase font-sans">Mecra Mesajdır</div>
+        <div class="text-xs font-semibold text-slate-600 uppercase tracking-widest mt-1 font-sans">Çoklu Mecra Mesaj Platformu</div>
         <div class="text-lg font-extrabold uppercase mt-4 tracking-widest text-[#0F172A] font-sans">RESMİ YAZI VE İDARİ TALİMAT BELGESİ</div>
       </div>
       <div class="flex items-center justify-between text-xs font-bold text-slate-700 mb-6 pb-2 border-b border-slate-200 font-sans relative z-10">
-        <div>Sayı : <span contenteditable="true" class="editable-field">E-75249013-010.06-2026/4108</span></div>
+        <div>Sayı : <span contenteditable="true" class="editable-field">E-MM-2026/4108</span></div>
         <div>Tarih : <span contenteditable="true" class="editable-field">${todayStr}</span></div>
       </div>
-      <div class="text-sm font-bold text-slate-900 mb-6 font-sans text-center tracking-wide relative z-10">İLGİLİ KURUM VE KURULUŞ MÜDÜRLÜKLERİNE</div>
+      <div class="text-sm font-bold text-slate-900 mb-6 font-sans text-center tracking-wide relative z-10">İLGİLİ BİRİM VE MÜDÜRLÜKLERE</div>
       <div id="draft-content-editable" contenteditable="true" class="text-sm md:text-base leading-relaxed text-justify space-y-4 min-h-[350px] outline-none editable-content text-slate-900 font-serif relative z-10">
         ${formatTextToParagraphs(rawMsg)}
       </div>
       <div class="mt-12 text-center font-sans relative z-10">
         <div class="font-bold text-slate-900 text-sm">Ayşe YILDIZ</div>
-        <div class="text-xs text-slate-600">Başkan a. / Genel Sekreter</div>
+        <div class="text-xs text-slate-600">Genel Sekreter</div>
       </div>
       <div class="mt-10 pt-4 border-t border-slate-300 text-center text-[11px] text-slate-500 font-sans relative z-10">
-        <div class="font-bold text-slate-700">T.C. CUMHURBAŞKANLIĞI İLETİŞİM BAŞKANLIĞI</div>
-        <div>Ziyagökalp Caddesi No: 43 Çankaya / ANKARA · Tel: 0312 590 20 00</div>
+        <div class="font-bold text-slate-700">Mecra Mesajdır</div>
+        <div>Çoklu mecra mesaj dönüşüm ve analiz çıktısı</div>
       </div>`;
   } else {
     paper.innerHTML = `
-      <img src="${logoUrl}" alt="" class="document-watermark">
-      <div class="text-center pb-5 mb-6 relative z-10" style="border-bottom: 3px double #b30000;">
+      <div class="text-center pb-5 mb-6 relative z-10" style="border-bottom: 3px double #0F172A;">
         <div class="flex items-center justify-center mb-3">
-          <img src="${logoUrl}" alt="Logo" class="h-16 w-auto object-contain">
+          <div class="brand-seal brand-seal--doc" aria-hidden="true"><img src="assets/brand-seal.svg" alt=""></div>
         </div>
-        <div class="text-sm font-bold tracking-wider text-slate-800 uppercase font-sans">T.C. CUMHURBAŞKANLIĞI İLETİŞİM BAŞKANLIĞI</div>
-        <div class="text-xs font-semibold text-slate-600 uppercase tracking-widest mt-1 font-sans">Basın ve Yayın Dairesi Başkanlığı</div>
-        <div class="text-xl font-extrabold uppercase mt-4 tracking-widest text-[#b30000] font-sans">${getChannelTitleUpper(channelId)}</div>
+        <div class="text-sm font-bold tracking-wider text-slate-800 uppercase font-sans">Mecra Mesajdır</div>
+        <div class="text-xs font-semibold text-slate-600 uppercase tracking-widest mt-1 font-sans">Çoklu Mecra Mesaj Platformu</div>
+        <div class="text-xl font-extrabold uppercase mt-4 tracking-widest text-[#0F172A] font-sans">${getChannelTitleUpper(channelId)}</div>
       </div>
       <div class="flex items-center justify-between text-xs font-bold text-slate-700 mb-6 pb-2 border-b border-slate-200 font-sans relative z-10">
         <div>Tarih: <span id="draft-date" contenteditable="true" class="editable-field">${todayStr}</span></div>
-        <div>Evrak Kodu: <span id="draft-number" contenteditable="true" class="editable-field">B.02.1.İMB.0.10/2026-${String(channelId).toUpperCase()}</span></div>
+        <div>Evrak Kodu: <span id="draft-number" contenteditable="true" class="editable-field">MM-2026-${String(channelId).toUpperCase()}</span></div>
       </div>
       <div id="draft-content-editable" contenteditable="true" class="text-sm md:text-base leading-relaxed text-justify space-y-4 min-h-[380px] outline-none editable-content text-slate-900 font-serif relative z-10">
         ${formatTextToParagraphs(rawMsg)}
       </div>
       <div class="mt-14 pt-4 border-t border-slate-300 text-center text-[11px] text-slate-500 font-sans space-y-1 relative z-10">
-        <div class="font-bold text-slate-700">T.C. CUMHURBAŞKANLIĞI İLETİŞİM BAŞKANLIĞI</div>
-        <div>Ziyagökalp Caddesi No: 43 Çankaya / ANKARA · basin@iletisim.gov.tr · Tel: 0312 590 20 00</div>
+        <div class="font-bold text-slate-700">Mecra Mesajdır</div>
+        <div>Çoklu mecra mesaj dönüşüm ve analiz çıktısı</div>
       </div>`;
   }
 }
