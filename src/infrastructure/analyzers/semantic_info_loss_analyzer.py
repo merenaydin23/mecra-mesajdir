@@ -5,6 +5,7 @@ NLP, NLI ve SentenceTransformers modelleri ile bilgi kaybı ve anlamsal benzerli
 """
 
 import asyncio
+import os
 import re
 import torch
 from typing import List, Tuple, Optional, Dict
@@ -933,8 +934,11 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
         src = getattr(self, "_last_fact_source", "rule")
         for row in fact_details:
             row.setdefault("source", src)
-        fwd_nli = self._get_nli_probs(core_text, target_text)
-        fwd_contra = fwd_nli.get("contradiction", 0.0)
+        # NLI 8× CPU'da analiz timeout'a düşürüyor — varsayılan kapalı
+        fwd_contra = 0.0
+        if os.getenv("ANALYZE_USE_NLI", "").strip().lower() in ("1", "true", "yes"):
+            fwd_nli = self._get_nli_probs(core_text, target_text)
+            fwd_contra = fwd_nli.get("contradiction", 0.0)
 
         model_unavailable = (self._nli_model is None) and (self._embed_model is None)
         loss_reason = InfoLossReason.NONE
@@ -1099,12 +1103,9 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
     async def analyze_all(
         self, core: CoreMessage, transformed_list: List[TransformedMessage]
     ) -> Tuple[List[CombinedAnalysisResult], DegradationChainResult]:
-        """AI baskın hibrit: 1× olgu çıkarma + platform başına AI var/yok; kural yedek."""
+        """Hızlı analiz: 1× AI olgu (opsiyonel) + kural var/yok; 8× LLM judge/NLI yok."""
         ai_ents = await self._fetch_ai_entities(core.content)
-        ents = await asyncio.to_thread(self._resolve_core_entities, core.content, ai_ents)
-        presence_map = await self._fetch_ai_presence(ents, transformed_list)
-        if presence_map:
-            print(f"[ANALİZ] AI var/yok: {len(presence_map)} platform")
+        print(f"[ANALİZ] olgu={len(ai_ents or [])} AI + kural eşleşme (hızlı mod)")
         return await asyncio.to_thread(
-            self._sync_analyze_all, core, transformed_list, ai_ents, presence_map
+            self._sync_analyze_all, core, transformed_list, ai_ents, {}
         )
