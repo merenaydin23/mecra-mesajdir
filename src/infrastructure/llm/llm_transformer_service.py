@@ -94,32 +94,12 @@ Markdown/yorum YASAK."""
 def resolve_active_llm() -> Tuple[str, str, str, str, str]:
     """
     Returns: (mode, provider, api_key, base_url, model_name)
-    mode: external | internal
+    Yalnızca Groq.
     """
-    mode = (os.getenv("LLM_MODE") or "external").strip().lower()
-    if mode not in ("external", "internal"):
-        mode = "external"
-
-    if mode == "internal":
-        api_key = os.getenv("INTERNAL_LLM_API_KEY") or os.getenv("LLM_API_KEY", "")
-        base_url = os.getenv("INTERNAL_LLM_BASE_URL", "https://llmstat.iletisim.gov.tr/v1")
-        model = os.getenv("INTERNAL_LLM_MODEL_NAME", "qwen-397b")
-        provider = "kurumsal"
-    else:
-        # Kurum dışı: Google Gemini (OpenAI-uyumlu endpoint)
-        api_key = (
-            os.getenv("GEMINI_API_KEY")
-            or os.getenv("GOOGLE_API_KEY")
-            or os.getenv("LLM_API_KEY", "")
-        )
-        base_url = os.getenv(
-            "EXTERNAL_LLM_BASE_URL",
-            "https://generativelanguage.googleapis.com/v1beta/openai/",
-        )
-        model = os.getenv("EXTERNAL_LLM_MODEL_NAME", "gemini-2.5-flash")
-        provider = "gemini"
-
-    return mode, provider, api_key, base_url, model
+    api_key = os.getenv("GROQ_API_KEY") or os.getenv("LLM_API_KEY") or ""
+    base_url = os.getenv("EXTERNAL_LLM_BASE_URL", "https://api.groq.com/openai/v1")
+    model = os.getenv("EXTERNAL_LLM_MODEL_NAME", "llama-3.1-8b-instant")
+    return "external", "groq", api_key, base_url, model
 
 
 class LLMMessageTransformerService(LLMServiceInterface):
@@ -133,8 +113,7 @@ class LLMMessageTransformerService(LLMServiceInterface):
         self.base_url = base_url or env_base
         self.model_name = model_name or env_model
 
-        verify_ssl = self.provider != "kurumsal"
-        http_client = httpx.AsyncClient(verify=verify_ssl, timeout=120.0)
+        http_client = httpx.AsyncClient(verify=True, timeout=120.0)
         self.client = AsyncOpenAI(
             api_key=self.api_key or "missing-key",
             base_url=self.base_url,
@@ -1191,18 +1170,16 @@ KURAL 5: %100 Türkçe. Yanıtına `[FINAL_RESULT_START]` ile başla; başka met
                     transformed_content=text,
                 )
 
-        # 2) Eksik mecralar: sıralı (paralel değil)
-        #    Kota bir kez trip olursa kalanlar anında şablon
+        # 2) Eksikler: yerel şablon (tek tek LLM çağrısı AbortError üretiyordu)
         missing = [ch for ch in ChannelType if ch not in results]
-        for ch in missing:
-            if self._in_cooldown():
+        if missing:
+            print(f"[LLM] {len(missing)} mecra yerel şablonla tamamlanıyor (hızlı yol)")
+            for ch in missing:
                 results[ch] = TransformedMessage(
                     channel=ch,
                     original_content=message.content,
                     transformed_content=self._generate_fallback_content(message.content, ch),
                 )
-            else:
-                results[ch] = await self.transform_to_channel(message, ch)
 
         return [results[ch] for ch in ChannelType]
 

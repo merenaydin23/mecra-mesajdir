@@ -89,9 +89,8 @@ def health_check():
     provider = getattr(llm_service, "provider", "")
     key_set = bool(
         getattr(llm_service, "api_key", "")
-        or os.getenv("GEMINI_API_KEY")
-        or os.getenv("GOOGLE_API_KEY")
-        or os.getenv("INTERNAL_LLM_API_KEY")
+        or os.getenv("GROQ_API_KEY")
+        or os.getenv("LLM_API_KEY")
     )
 
     db_status = {"mode": "off", "enabled": False, "available": False}
