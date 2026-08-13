@@ -94,12 +94,19 @@ Markdown/yorum YASAK."""
 def resolve_active_llm() -> Tuple[str, str, str, str, str]:
     """
     Returns: (mode, provider, api_key, base_url, model_name)
-    Yalnızca Groq.
+    LLM_API_KEY öncelikli; base_url'e göre provider otomatik belirlenir.
     """
-    api_key = os.getenv("GROQ_API_KEY") or os.getenv("LLM_API_KEY") or ""
-    base_url = os.getenv("EXTERNAL_LLM_BASE_URL", "https://api.groq.com/openai/v1")
-    model = os.getenv("EXTERNAL_LLM_MODEL_NAME", "llama-3.1-8b-instant")
-    return "external", "groq", api_key, base_url, model
+    api_key = os.getenv("LLM_API_KEY") or os.getenv("GROQ_API_KEY") or ""
+    base_url = os.getenv("EXTERNAL_LLM_BASE_URL", "https://llmstat.iletisim.gov.tr/v1")
+    model = os.getenv("EXTERNAL_LLM_MODEL_NAME", "qwen-397b")
+    # Provider otomatik tespit
+    if "groq.com" in base_url:
+        provider = "groq"
+    elif "iletisim.gov.tr" in base_url:
+        provider = "iletisim-kurumsal"
+    else:
+        provider = "openai-compatible"
+    return "external", provider, api_key, base_url, model
 
 
 class LLMMessageTransformerService(LLMServiceInterface):
@@ -158,7 +165,10 @@ class LLMMessageTransformerService(LLMServiceInterface):
             top_p=0.9,
             max_tokens=max_tokens,
         )
-        return (response.choices[0].message.content or "").strip()
+        raw = (response.choices[0].message.content or "").strip()
+        # Reasoning modelleri (qwen vb.) <think>...</think> blokları döndürebilir — temizle
+        raw = re.sub(r"(?s)<think>.*?</think>", "", raw).strip()
+        return raw
 
     def _normalize_fact_label(self, label: str) -> str:
         label = str(label or "").strip().upper()
@@ -217,7 +227,7 @@ class LLMMessageTransformerService(LLMServiceInterface):
                     ),
                     max_tokens=1000,
                 ),
-                timeout=25.0,
+                timeout=60.0,
             )
             data = self._extract_json_object(text) or {}
             items = data.get("entities") if isinstance(data, dict) else None
@@ -265,7 +275,7 @@ class LLMMessageTransformerService(LLMServiceInterface):
                     ),
                     max_tokens=900,
                 ),
-                timeout=25.0,
+                timeout=60.0,
             )
             data = self._extract_json_object(text) or {}
             decisions = data.get("decisions") if isinstance(data, dict) else None
@@ -347,7 +357,7 @@ class LLMMessageTransformerService(LLMServiceInterface):
                     ),
                     max_tokens=2200,
                 ),
-                timeout=45.0,
+                timeout=90.0,
             )
             data = self._extract_json_object(text) or {}
             plats = data.get("platforms") if isinstance(data, dict) else None
@@ -862,6 +872,8 @@ KURAL 5: %100 Türkçe. Yanıtına `[FINAL_RESULT_START]` ile başla; başka met
     def _extract_json_object(self, text: str) -> Optional[dict]:
         if not text:
             return None
+        # Reasoning modelleri (qwen vb.) <think>...</think> blokları döndürebilir — temizle
+        text = re.sub(r"(?s)<think>.*?</think>", "", text).strip()
         text = re.sub(r"(?is)```(?:json)?\s*", "", text).replace("```", "").strip()
         try:
             data = json.loads(text)
@@ -894,8 +906,8 @@ KURAL 5: %100 Türkçe. Yanıtına `[FINAL_RESULT_START]` ile başla; başka met
 
         try:
             raw = await asyncio.wait_for(
-                self._chat(BATCH_TRANSFORM_SYSTEM, user_prompt, max_tokens=3500),
-                timeout=45.0,
+                self._chat(BATCH_TRANSFORM_SYSTEM, user_prompt, max_tokens=6000),
+                timeout=120.0,
             )
         except asyncio.TimeoutError:
             print("[LLM UYARI] Batch zaman aşımı → yerel şablonlar")

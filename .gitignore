@@ -24,3 +24,6 @@ Thumbs.db
 # Benchmark çıktıları (yerel)
 benchmark_report.json
 
+# Analiz geçmişi verileri (canlıda oluşur)
+data/history_storage.json
+

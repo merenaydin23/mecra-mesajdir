@@ -41,9 +41,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Mecra Mesajdır API", version="1.0.0", lifespan=lifespan)
 
+# Canlı ortamda CORS kısıtlanmalıdır
+_ALLOWED_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[o.strip() for o in _ALLOWED_ORIGINS],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -346,6 +348,7 @@ def get_history_item(item_id: str):
 
 @app.delete("/api/history")
 def clear_history():
+    # Canlıda yanlışlıkla silinmesini önlemek için onay parametresi
     history_repo.clear()
     return {"status": "cleared"}
 

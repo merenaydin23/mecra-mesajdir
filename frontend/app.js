@@ -85,8 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderQuickHistoryChips();
   loadDefaultData();
   initTabNavigation();
-  // Sunucu geçmişini de temiz başlangıç için senkronize et (bir kerelik bayrak)
-  clearServerHistoryOnce();
+  // NOT: clearServerHistoryOnce() canlıda devre dışı — geçmiş korunmalı
 });
 
 function initLucideIcons() {
@@ -770,11 +769,11 @@ function renderPlatformCards() {
 
         <div class="platform-card-footer">
           ${metaHtml}
-          ${platform.id === VIDEO_CHANNEL_ID && hasContent ? `
+          ${platform.id === VIDEO_CHANNEL_ID ? `
           <div class="platform-video-actions" onclick="event.stopPropagation()">
-            <button type="button" class="platform-action-btn platform-action-btn--video" onclick="openVideoFromCard()" title="Video üret">
+            <button type="button" class="platform-action-btn platform-action-btn--video" onclick="openVideoFromCard()" title="Video Oluştur (Önizleme)">
               <svg class="platform-action-ico" viewBox="0 0 24 24" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/></svg>
-              <span>Video Üret</span>
+              <span>Video Oluştur</span>
             </button>
           </div>` : ''}
           <div class="platform-action-row">
@@ -899,13 +898,20 @@ function closeExpandedCardModal() {
 // ============================================================
 
 function getVideoScenarioText() {
-  return stripProofreadLabel((appState.transformedMessages[VIDEO_CHANNEL_ID] || '').trim());
+  let text = stripProofreadLabel((appState.transformedMessages[VIDEO_CHANNEL_ID] || '').trim());
+  if (!text) {
+    const core = (appState.coreMessage || '').trim() || 'Resmi bilgilendirme yapılacaktır.';
+    const rewrite = composeInstitutionalRewrite(core);
+    const texts = buildChannelTextsFromRewrite(rewrite);
+    text = texts.vertical_video;
+    appState.transformedMessages[VIDEO_CHANNEL_ID] = text;
+  }
+  return text;
 }
 
 function videoScenarioToolsHtml(opts = {}) {
   const compact = !!opts.compact;
   const mountId = opts.mountId || 'video-module-mount';
-  const hasScript = !!getVideoScenarioText();
   return `
     <div class="video-scenario-tools ${compact ? 'video-scenario-tools--compact' : ''}" data-video-tools>
       <div class="video-scenario-tools__head">
@@ -915,13 +921,13 @@ function videoScenarioToolsHtml(opts = {}) {
           <p class="video-scenario-tools__desc">PDF indirin veya dikey video önizlemesini oynatın.</p>
         </div>
         <div class="video-scenario-tools__actions">
-          <button type="button" class="video-tool-btn video-tool-btn--pdf" onclick="event.stopPropagation(); downloadVideoScenarioPdf()" ${hasScript ? '' : 'disabled'}>
+          <button type="button" class="video-tool-btn video-tool-btn--pdf" onclick="event.stopPropagation(); downloadVideoScenarioPdf()">
             <i data-lucide="file-down" class="w-4 h-4"></i>
             <span>PDF Senaryo</span>
           </button>
-          <button type="button" class="video-tool-btn video-tool-btn--create" onclick="event.stopPropagation(); openVideoCreateModule('${mountId}')" ${hasScript ? '' : 'disabled'}>
+          <button type="button" class="video-tool-btn video-tool-btn--create" onclick="event.stopPropagation(); openVideoCreateModule('${mountId}')">
             <i data-lucide="clapperboard" class="w-4 h-4"></i>
-            <span>Video Üret</span>
+            <span>Video Oluştur</span>
           </button>
         </div>
       </div>
@@ -2379,7 +2385,7 @@ function renderOfficialDocument(channelId = 'press_release') {
     paper.innerHTML = `
       <div class="text-center pb-5 mb-6 relative z-10" style="border-bottom: 3px double #0F172A;">
         <div class="flex items-center justify-center mb-3">
-          <div class="brand-seal brand-seal--doc" aria-hidden="true"><img src="assets/brand-seal.svg" alt=""></div>
+          <div class="brand-seal brand-seal--doc" aria-hidden="true"><img src="assets/cib-logo.png" alt=""></div>
         </div>
         <div class="text-sm font-bold tracking-wider text-slate-800 uppercase font-sans">Mecra Mesajdır</div>
         <div class="text-xs font-semibold text-slate-600 uppercase tracking-widest mt-1 font-sans">Çoklu Mecra Mesaj Platformu</div>
@@ -2405,7 +2411,7 @@ function renderOfficialDocument(channelId = 'press_release') {
     paper.innerHTML = `
       <div class="text-center pb-5 mb-6 relative z-10" style="border-bottom: 3px double #0F172A;">
         <div class="flex items-center justify-center mb-3">
-          <div class="brand-seal brand-seal--doc" aria-hidden="true"><img src="assets/brand-seal.svg" alt=""></div>
+          <div class="brand-seal brand-seal--doc" aria-hidden="true"><img src="assets/cib-logo.png" alt=""></div>
         </div>
         <div class="text-sm font-bold tracking-wider text-slate-800 uppercase font-sans">Mecra Mesajdır</div>
         <div class="text-xs font-semibold text-slate-600 uppercase tracking-widest mt-1 font-sans">Çoklu Mecra Mesaj Platformu</div>
