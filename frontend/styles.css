@@ -105,6 +105,7 @@ main, header, footer, .mobile-nav-tabs {
   flex: 1 1 auto;
 }
 
+.brand-seal,
 .logo-seal {
   display: flex;
   align-items: center;
@@ -112,16 +113,23 @@ main, header, footer, .mobile-nav-tabs {
   flex-shrink: 0;
   width: 3.35rem;
   height: 3.35rem;
+  max-width: 3.35rem;
+  max-height: 3.35rem;
   padding: 0.35rem;
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 0.5rem;
+  overflow: hidden;
 }
 
+.brand-seal img,
 .logo-seal img {
   height: 2.4rem;
+  max-height: 2.4rem;
   width: auto;
+  max-width: 100%;
   object-fit: contain;
+  display: block;
 }
 
 .corp-brand-text {
