@@ -893,23 +893,26 @@ class SemanticAndInfoLossAnalyzer(AnalyzerServiceInterface):
 
     def prewarm(self) -> None:
         """Tüm alt modelleri önceden yükler (ilk analiz gecikmesini kırar)."""
-        self._load_models()
-        try:
-            self._cta_analyzer._load_nlp()
-        except Exception:
-            pass
-        try:
-            self._sentiment_analyzer._load_model()
-        except Exception:
-            pass
-        try:
-            self._ambiguity_analyzer._load_model()
-        except Exception:
-            pass
-        try:
-            self._degradation_analyzer._load_model()
-        except Exception:
-            pass
+        import gc
+        with torch.no_grad():
+            self._load_models()
+            try:
+                self._cta_analyzer._load_nlp()
+            except Exception:
+                pass
+            try:
+                self._sentiment_analyzer._load_model()
+            except Exception:
+                pass
+            try:
+                self._ambiguity_analyzer._load_model()
+            except Exception:
+                pass
+            try:
+                self._degradation_analyzer._load_model()
+            except Exception:
+                pass
+            gc.collect()
 
     # --- ANA ANALİZ METHODLARI ---
     def _build_pair_result(

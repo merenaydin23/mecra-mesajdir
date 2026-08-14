@@ -96,9 +96,18 @@ def resolve_active_llm() -> Tuple[str, str, str, str, str]:
     Returns: (mode, provider, api_key, base_url, model_name)
     LLM_API_KEY öncelikli; base_url'e göre provider otomatik belirlenir.
     """
-    api_key = os.getenv("LLM_API_KEY") or os.getenv("GEMINI_API_KEY") or os.getenv("GROQ_API_KEY") or ""
-    base_url = os.getenv("EXTERNAL_LLM_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/")
-    model = os.getenv("EXTERNAL_LLM_MODEL_NAME", "gemini-1.5-flash")
+    api_key = (
+        os.getenv("LLM_API_KEY")
+        or os.getenv("GEMINI_API_KEY")
+        or os.getenv("GOOGLE_API_KEY")
+        or os.getenv("GOOGLE_GENAI_API_KEY")
+        or os.getenv("GEMINI_KEY")
+        or os.getenv("API_KEY")
+        or os.getenv("GROQ_API_KEY")
+        or ""
+    ).strip().strip('"').strip("'")
+    base_url = (os.getenv("EXTERNAL_LLM_BASE_URL") or "https://generativelanguage.googleapis.com/v1beta/openai/").strip().strip('"').strip("'")
+    model = (os.getenv("EXTERNAL_LLM_MODEL_NAME") or "gemini-1.5-flash").strip().strip('"').strip("'")
     # Provider otomatik tespit
     if "googleapis.com" in base_url:
         provider = "gemini"
