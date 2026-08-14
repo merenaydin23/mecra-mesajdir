@@ -61,11 +61,37 @@ class AnalyzeRequest(BaseModel):
     platforms: list[PlatformItem]
     author: str = "Kamu Görevlisi"
 
-# Global Singleton Servisler
-llm_service = LLMMessageTransformerService()
-analyzer_service = SemanticAndInfoLossAnalyzer(llm_service=llm_service)
-history_repo = HistoryRepository()
-benchmark_evaluator = BenchmarkEvaluator(analyzer=analyzer_service)
+# Global Singleton Servisler — hata olursa sunucu çökmemeli
+try:
+    llm_service = LLMMessageTransformerService()
+except Exception as _llm_err:
+    print(f"[STARTUP HATA] LLM servisi başlatılamadı: {_llm_err}")
+    llm_service = LLMMessageTransformerService.__new__(LLMMessageTransformerService)
+    llm_service.api_key = ""
+    llm_service.mode = "external"
+    llm_service.provider = "gemini"
+    llm_service.model_name = "gemini-1.5-pro"
+    llm_service.base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+    llm_service.client = None
+    llm_service._cooldown_until = 0.0
+
+try:
+    analyzer_service = SemanticAndInfoLossAnalyzer(llm_service=llm_service)
+except Exception as _ana_err:
+    print(f"[STARTUP HATA] Analyzer servisi başlatılamadı: {_ana_err}")
+    analyzer_service = None
+
+try:
+    history_repo = HistoryRepository()
+except Exception as _hist_err:
+    print(f"[STARTUP HATA] History repo başlatılamadı: {_hist_err}")
+    history_repo = None
+
+try:
+    benchmark_evaluator = BenchmarkEvaluator(analyzer=analyzer_service) if analyzer_service else None
+except Exception as _bench_err:
+    print(f"[STARTUP HATA] Benchmark başlatılamadı: {_bench_err}")
+    benchmark_evaluator = None
 
 # MSSQL opsiyonel — yoksa JSON geçmiş ile local çalışır
 try:
