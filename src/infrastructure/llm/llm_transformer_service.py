@@ -96,11 +96,13 @@ def resolve_active_llm() -> Tuple[str, str, str, str, str]:
     Returns: (mode, provider, api_key, base_url, model_name)
     LLM_API_KEY öncelikli; base_url'e göre provider otomatik belirlenir.
     """
-    api_key = os.getenv("LLM_API_KEY") or os.getenv("GROQ_API_KEY") or ""
-    base_url = os.getenv("EXTERNAL_LLM_BASE_URL", "https://llmstat.iletisim.gov.tr/v1")
-    model = os.getenv("EXTERNAL_LLM_MODEL_NAME", "qwen-397b")
+    api_key = os.getenv("LLM_API_KEY") or os.getenv("GEMINI_API_KEY") or os.getenv("GROQ_API_KEY") or ""
+    base_url = os.getenv("EXTERNAL_LLM_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/")
+    model = os.getenv("EXTERNAL_LLM_MODEL_NAME", "gemini-1.5-flash")
     # Provider otomatik tespit
-    if "groq.com" in base_url:
+    if "googleapis.com" in base_url:
+        provider = "gemini"
+    elif "groq.com" in base_url:
         provider = "groq"
     elif "iletisim.gov.tr" in base_url:
         provider = "iletisim-kurumsal"
