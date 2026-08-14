@@ -1702,51 +1702,22 @@ function composeInstitutionalRewrite(core) {
   const hasLastWeek = /gecen hafta|gecmis hafta/.test(low);
   const hasLastTue = /gecen sali|gecmis sali/.test(low);
 
+  const sentences = raw.split(/[.!?\n]+/).map(s => s.trim()).filter(s => s.length > 2);
   let title, s1, s2, s3, b1, b2, b3;
-  if (hasDeprem || hasAfad || (hasValilik && (hasKriz || hasSpeed))) {
-    title = 'Deprem Bilgilendirme Hattı ve Yönlendirme Panelinin Devreye Alınması';
-    const when = hasLastTue ? 'Geçtiğimiz salı' : (hasLastWeek ? 'Geçtiğimiz hafta' : 'Yakın dönemde');
-    s1 = `${when} Valilik koordinasyonunda başlatılan deprem bilgilendirme hattı çalışmaları bugün itibarıyla tamamlanmış ve uygulamaya alınmıştır.`;
-    s2 = 'Devreye alınan yönlendirme paneli sayesinde asılsız paylaşımlar dakikalar içinde tespit edilerek ilgili birimlerin ekranına yönlendirilmektedir.';
-    s3 = hasAfad
-      ? (hasIletisim
-        ? 'Böylelikle kamuoyu bilgilendirmesi hızlandırılmış; yarın AFAD ve yerel basınla ortak basın notu çalışmalarının koordinasyonu sürdürülecektir. Süreç İletişim Başkanlığı tarafından yakından takip edilmektedir.'
-        : 'Böylelikle kamuoyu bilgilendirmesi hızlandırılmış; yarın AFAD ve yerel basınla ortak basın notu çalışmalarının koordinasyonu sürdürülecektir.')
-      : 'Böylelikle kamuoyu bilgilendirmesi hızlandırılmış; valiliklerle ortak bilgilendirme koordinasyonu güçlendirilmiştir.';
-    b1 = 'Deprem bilgilendirme hattı uygulamaya alınmıştır';
-    b2 = 'Yönlendirme paneli asılsız paylaşımları dakikalar içinde yakalamaktadır';
-    b3 = hasAfad
-      ? 'AFAD ve yerel basınla ortak basın notu koordinasyonu sürdürülmektedir'
-      : 'Resmi kanallar üzerinden kamuoyu bilgilendirilmektedir';
-  } else if (hasKriz || (hasIletisim && hasSpeed)) {
-    title = 'Dijital Kriz Masası ve Takip Panelinin Devreye Alınması';
-    const when = hasLastWeek ? 'Geçtiğimiz hafta' : 'Yakın dönemde';
-    s1 = `${when} İletişim Başkanlığı bünyesinde başlatılan dijital kriz masası çalışmaları bugün itibarıyla tamamlanmış ve uygulamaya alınmıştır.`;
-    s2 = 'Devreye alınan takip paneli sayesinde sahadan gelen asılsız haber ve şüpheli paylaşımlar dakikalar içinde tespit edilerek ilgili birimlerin ekranına yönlendirilmektedir.';
-    s3 = hasValilik
-      ? 'Böylelikle kamuoyu bilgilendirmesi hızlandırılmış; yarın valiliklerle ortak basın notu çalışmalarının koordinasyonu sürdürülecektir.'
-      : 'Böylelikle kamuoyu bilgilendirmesi hızlandırılmış; kurumsal kapasite ve resmi iletişim süreçleri güçlendirilmiştir.';
-    b1 = 'İletişim Başkanlığı dijital kriz masası uygulamaya alınmıştır';
-    b2 = 'Takip paneli şüpheli paylaşımları dakikalar içinde yakalamaktadır';
-    b3 = hasValilik
-      ? 'Valiliklerle ortak basın notu koordinasyonu sürdürülmektedir'
-      : 'Resmi bilgilendirme kanalları üzerinden kamuoyu bilgilendirilmektedir';
-  } else if (hasCimer && (hasAi || hasComplaint || hasSpeed)) {
-    title = 'CİMER Yapay Zekâ Entegrasyonunun Tamamlanması';
-    s1 = 'Geçtiğimiz ay başlatılan CİMER yapay zekâ entegrasyonu çalışmaları bugün itibarıyla tamamlanmıştır.';
-    s2 = 'Devreye alınan sistem sayesinde vatandaşlarca iletilen şikâyet ve dilekçeler saniyeler içinde analiz edilerek ilgili bakanlık birimlerinin ekranına yönlendirilmektedir.';
-    s3 = 'Böylelikle başvuruların uzun süre bekletilmesinin önüne geçilmiş; kurumsal iş yükünün azaltılması ve kamu hizmetinin daha etkin sunulması sağlanmıştır.';
-    b1 = 'CİMER başvurularında yapay zekâ destekli yönlendirme devreye alınmıştır';
-    b2 = 'Başvuru iletim süresi günlerden saniyelere indirilmiştir';
-    b3 = 'İlgili bakanlık birimleriyle anlık veri aktarımı sağlanmıştır';
+  if (sentences.length) {
+    s1 = sentences[0] + '.';
+    s2 = sentences[1] ? sentences[1] + '.' : 'Süreç, ilgili birimlerin koordinasyonunda planlı biçimde yürütülmektedir.';
+    s3 = sentences[2] ? sentences[2] + '.' : 'Kamuoyunu ilgilendiren gelişmeler resmi kanallar üzerinden şeffaflıkla paylaşılacaktır.';
+    title = sentences[0].slice(0, 65).trim() + (sentences[0].length > 65 ? '...' : '');
+    b1 = sentences[0];
+    b2 = sentences[1] || 'İlgili idari ve teknik tedbirler eksiksiz alınmıştır.';
+    b3 = sentences[2] || 'Resmi bilgilendirme kanalları üzerinden süreç takip edilmektedir.';
   } else {
-    title = 'Kamuoyunu İlgilendiren Resmi Bilgilendirme';
-    s1 = 'İlgili birimlerimizce yürütülen çalışmalar bugün itibarıyla tamamlanmış ve uygulamaya alınmıştır.';
-    s2 = 'Süreç, ilgili kurumların koordinasyonunda planlı ve şeffaf biçimde yönetilmektedir.';
-    s3 = 'Bu çerçevede kurumsal kapasitenin güçlendirilmesi hedeflenmiş; kamuoyu bilgilendirmesi resmi kanallar üzerinden sürdürülecektir.';
-    b1 = 'Süreç ilgili birimler koordinasyonunda yürütülmektedir';
-    b2 = 'Uygulama takvimi planlı biçimde ilerletilmektedir';
-    b3 = 'Resmi bilgilendirme kanalları açık tutulmaktadır';
+    title = 'Resmi Bilgilendirme';
+    s1 = raw || 'İlgili birimlerimizce yürütülen çalışmalar kapsamında önemli bir gelişme kaydedilmiştir.';
+    s2 = 'Süreç planlı ve şeffaf biçimde yönetilmektedir.';
+    s3 = 'Kamuoyuna saygıyla duyurulur.';
+    b1 = s1; b2 = s2; b3 = s3;
   }
   return { title, s1, s2, s3, b1, b2, b3 };
 }
