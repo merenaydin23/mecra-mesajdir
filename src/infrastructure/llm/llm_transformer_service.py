@@ -21,27 +21,27 @@ from src.domain.services.llm_service_interface import LLMServiceInterface
 from src.infrastructure.llm.prompts import CHANNEL_PROMPTS, CORE_PROOFREAD_PROMPT
 
 
-# Tek istekte 8 mecra — kota ve "hepsi aynı core" sorununu keser
 BATCH_TRANSFORM_SYSTEM = """Sen T.C. İletişim Başkanlığı bünyesinde çalışan üst düzey bir kurumsal iletişim uzmanısın.
 
-KURAL 1: Ham metni KESİNLİKLE birebir kopyalama / yapıştırma.
-KURAL 2: Laubali ifadeleri ('bizim çocuklar', 'şak diye', 'dün akşamüstü') SİL; resmi bürokratik dil yaz.
-KURAL 3: Her mecrayı aşağıdaki FORMAT İSKELETİNE birebir uyarak BAŞTAN YAZ.
-KURAL 4: Resmi yazıda rastgele Vali/Müdür uydurma; imza satırında yalnızca [Ad Soyad] ve [Unvan].
-KURAL 5: %100 Türkçe. Markdown, kod bloğu, meta yorum YASAK.
-KURAL 6: Sayı, tarih, kurum/kişi adlarını olgu olarak koru.
+GÖREV: Kullanıcının girdiği ÇEKİRDEK MESAJDAKİ bilgileri, olayları, kurumları, sayıları ve olguları BİREBİR KORUYARAK 8 farklı mecraya uyarla.
+KESİNLİKLE kullanıcının bahsetmediği başka konular (CİMER, Deprem, Afet, Kriz Masası vb.) UYDURMA. YALNIZCA kullanıcının girdiği metindeki konuyu ve bilgiyi temel al.
 
-FORMAT İSKELETLERİ (zorunlu başlıklar):
-- press_release: T.C. İLETİŞİM BAŞKANLIĞI / BASIN AÇIKLAMASI / BAŞLIK / 3 paragraf / Kamuoyuna saygıyla duyurulur.
-- agency_news: FLAŞ / BAŞLIK / spot / ANKARA - giriş / gelişme / sonuç
-- tabloid: BAŞLIK / SPOT / giriş / gövde / kapanış
-- x_twitter: 🚨 kanca / 📌 ÖZET: / 📋 DETAYLAR: (3 madde) / 📢 kapanış / 3 hashtag
-- linkedin: stratejik açılış / değer paragrafı / Öne Çıkan Başlıklar: (3 madde) / kapanış / 3 hashtag
-- vertical_video: VİDEO BAŞLIĞI: / SAHNE 1..4 (her birinde GÖRSEL/YAZI/SES)
-- messaging_chain: ⚠️ ÖNEMLİ BİLGİLENDİRME / Merhaba, / 📌 Konu: / 📍 Bilmeniz Gerekenler: / ℹ️ Hatırlatma: / 📲 paylaşım cümlesi
-- official_letter: T.C. / İLETİŞİM BAŞKANLIĞI / Sayı / Tarih / Konu / DAĞITIM YERLERİNE / 3 paragraf / Bilgilerinizi ve gereğini arz/rica ederim. / [Ad Soyad] / [Unvan]
+KURAL 1: Kullanıcının metnindeki öz bilgi ve anlamı koru.
+KURAL 2: Laubali ifadeleri resmi bürokratik/kurumsal dile çevir.
+KURAL 3: Belirtilen mecra formatlarına ve üslubuna uygun olarak metinleri yaz.
+KURAL 4: %100 Türkçe. Markdown kod bloğu veya açıklama yazma.
 
-Çıktın SADECE geçerli JSON olsun. Anahtarlar tam:
+FORMAT İSKELETLERİ:
+- press_release: T.C. İLETİŞİM BAŞKANLIĞI / BASIN AÇIKLAMASI / [Konuya Uygun Başlık] / [Metin] / Kamuoyuna saygıyla duyurulur.
+- agency_news: FLAŞ / [Haber Başlığı] / ANKARA - [Haber Metni]
+- tabloid: [Çarpıcı Başlık] / [Spot Cümlesi] / [Haber Metni]
+- x_twitter: 🚨 [Kısa Vurucu Başlık] \n📌 ÖZET: [Özet] \n📋 DETAYLAR: \n- [Madde 1]\n- [Madde 2] \n#Mecra #Gündem
+- linkedin: [Stratejik Giriş] \n\nÖne Çıkan Başlıklar:\n- [Madde 1]\n- [Madde 2]\n\n[Kurumsal Kapanış]\n#İletişim #Kamu
+- vertical_video: VİDEO BAŞLIĞI: [Başlık]\nSAHNE 1: GÖRSEL: [Açıklama] | SES: [Seslendirme]\nSAHNE 2: GÖRSEL: [Açıklama] | SES: [Seslendirme]\nSAHNE 3: GÖRSEL: [Açıklama] | SES: [Seslendirme]\nSAHNE 4: GÖRSEL: [Açıklama] | SES: [Seslendirme]
+- messaging_chain: ⚠️ ÖNEMLİ BİLGİLENDİRME\nMerhaba,\n📌 Konu: [Konu]\n📍 Bilmeniz Gerekenler:\n- [Madde]\nℹ️ Hatırlatma: [Hatırlatma]
+- official_letter: T.C.\nİLETİŞİM BAŞKANLIĞI\nDAĞITIM YERLERİNE\n\n[Resmi Yazı Metni]\n\nBilgilerinizi ve gereğini arz/rica ederim.\n[Ad Soyad]\n[Unvan]
+
+Çıktın SADECE geçerli JSON olsun. JSON anahtarları:
 press_release, agency_news, tabloid, x_twitter, linkedin, vertical_video, messaging_chain, official_letter"""
 
 
@@ -874,12 +874,9 @@ KURAL 5: %100 Türkçe. Yanıtına `[FINAL_RESULT_START]` ile başla; başka met
         if (
             not transformed_text
             or transformed_text.startswith("LLM Hatası:")
-            or len(transformed_text) < 10
-            or self._is_lazy_copy(message.content, transformed_text)
-            or self._has_template_leak(transformed_text)
-            or not self._matches_channel_format(channel, transformed_text)
+            or len(transformed_text.strip()) < 10
         ):
-            reason = "format/kopya/sablon-sizinti"
+            reason = "bos-veya-hata"
             print(f"[LLM] {channel.value}: {reason} → yerel prompt-uyumlu şablon")
             transformed_text = self._generate_fallback_content(message.content, channel)
 
@@ -915,7 +912,7 @@ KURAL 5: %100 Türkçe. Yanıtına `[FINAL_RESULT_START]` ile başla; başka met
         """Tek LLM çağrısıyla 8 mecrayı üretir (kota dostu)."""
         user_prompt = (
             "Aşağıdaki ham bilgi notunu 8 farklı mecraya BAŞTAN YAZ. "
-            "Hiçbir mecrada ham metni yapıştırma.\n\n"
+            "Kullanıcının konusunu ve olgularını BİREBİR KORU, başka konu uydurma.\n\n"
             f"HAM BİLGİ NOTU:\n{message.content}\n\n"
             "Beklenen JSON anahtarları: "
             "press_release, agency_news, tabloid, x_twitter, linkedin, "
@@ -951,12 +948,8 @@ KURAL 5: %100 Türkçe. Yanıtına `[FINAL_RESULT_START]` ile başla; başka met
                 cleaned = self._clean_llm_output(val.strip(), ch)
                 if ch == ChannelType.OFFICIAL_LETTER:
                     cleaned = self._clean_official_letter_placeholders(cleaned, message.content)
-                if self._is_lazy_copy(message.content, cleaned):
-                    continue
-                if not self._matches_channel_format(ch, cleaned):
-                    continue
                 result[ch] = cleaned
-        return result if len(result) >= 4 else None
+        return result if result else None
 
     def _clean_llm_output(self, text: str, channel: ChannelType) -> str:
         if not text:
