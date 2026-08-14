@@ -115,7 +115,7 @@ def resolve_active_llm() -> Tuple[str, str, str, str, str]:
 
     raw_model = (os.getenv("EXTERNAL_LLM_MODEL_NAME") or "").strip().strip('"').strip("'")
     if not raw_model or "qwen" in raw_model.lower():
-        model = "gemini-1.5-flash"
+        model = "gemini-1.5-pro"
     else:
         model = raw_model
 

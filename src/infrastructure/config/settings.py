@@ -29,7 +29,7 @@ def _resolve_llm_config():
             "EXTERNAL_LLM_BASE_URL",
             "https://generativelanguage.googleapis.com/v1beta/openai/",
         )
-        model = os.getenv("EXTERNAL_LLM_MODEL_NAME", "gemini-2.5-flash")
+        model = os.getenv("EXTERNAL_LLM_MODEL_NAME", "gemini-1.5-pro")
         provider = "gemini"
 
     return mode, provider, api_key, base_url, model
