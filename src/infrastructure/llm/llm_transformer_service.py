@@ -106,15 +106,24 @@ def resolve_active_llm() -> Tuple[str, str, str, str, str]:
         or os.getenv("GROQ_API_KEY")
         or ""
     ).strip().strip('"').strip("'")
-    base_url = (os.getenv("EXTERNAL_LLM_BASE_URL") or "https://generativelanguage.googleapis.com/v1beta/openai/").strip().strip('"').strip("'")
-    model = (os.getenv("EXTERNAL_LLM_MODEL_NAME") or "gemini-1.5-flash").strip().strip('"').strip("'")
+    
+    raw_base = (os.getenv("EXTERNAL_LLM_BASE_URL") or "").strip().strip('"').strip("'")
+    if not raw_base or "iletisim.gov.tr" in raw_base:
+        base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+    else:
+        base_url = raw_base
+
+    raw_model = (os.getenv("EXTERNAL_LLM_MODEL_NAME") or "").strip().strip('"').strip("'")
+    if not raw_model or "qwen" in raw_model.lower():
+        model = "gemini-1.5-flash"
+    else:
+        model = raw_model
+
     # Provider otomatik tespit
     if "googleapis.com" in base_url:
         provider = "gemini"
     elif "groq.com" in base_url:
         provider = "groq"
-    elif "iletisim.gov.tr" in base_url:
-        provider = "iletisim-kurumsal"
     else:
         provider = "openai-compatible"
     return "external", provider, api_key, base_url, model

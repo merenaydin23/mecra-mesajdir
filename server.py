@@ -32,11 +32,7 @@ from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("🚀 [SUNUCU] Tüm analiz modelleri arka planda ön-yükleniyor...")
-    try:
-        asyncio.create_task(asyncio.to_thread(analyzer_service.prewarm))
-    except Exception as e:
-        print(f"⚠️ [SUNUCU] Pre-warm atlandı: {e}")
+    print("🚀 [SUNUCU] Mecra Mesajdır API servisi başarıyla başlatıldı.")
     yield
 
 app = FastAPI(title="Mecra Mesajdır API", version="1.0.0", lifespan=lifespan)
