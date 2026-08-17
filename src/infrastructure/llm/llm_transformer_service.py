@@ -175,17 +175,53 @@ class LLMMessageTransformerService(LLMServiceInterface):
         return 8.0
 
     async def _chat(self, system_prompt: str, user_prompt: str, max_tokens: int = 1200) -> str:
-        response = await self.client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            model=self.model_name,
-            temperature=0.1,
-            top_p=0.9,
-            max_tokens=max_tokens,
-        )
-        raw = (response.choices[0].message.content or "").strip()
+        if self.provider == "gemini" and self.api_key:
+            # Native Gemini API Call to support both AIza and AQ. keys flawlessly
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent?key={self.api_key}"
+            headers = {"Content-Type": "application/json"}
+            payload = {
+                "contents": [
+                    {
+                        "role": "user",
+                        "parts": [
+                            {"text": user_prompt}
+                        ]
+                    }
+                ],
+                "systemInstruction": {
+                    "parts": [
+                        {"text": system_prompt}
+                    ]
+                },
+                "generationConfig": {
+                    "temperature": 0.1,
+                    "topP": 0.9,
+                    "maxOutputTokens": max_tokens
+                }
+            }
+            async with httpx.AsyncClient(verify=True, timeout=120.0) as client:
+                response = await client.post(url, json=payload, headers=headers)
+                if response.status_code != 200:
+                    raise Exception(f"Gemini API Error {response.status_code}: {response.text}")
+                res_data = response.json()
+                try:
+                    raw = res_data["candidates"][0]["content"]["parts"][0]["text"]
+                except (KeyError, IndexError):
+                    raise Exception(f"Failed to parse Gemini response: {res_data}")
+        else:
+            # OpenAI-compatible Fallback
+            response = await self.client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                model=self.model_name,
+                temperature=0.1,
+                top_p=0.9,
+                max_tokens=max_tokens,
+            )
+            raw = (response.choices[0].message.content or "").strip()
+
         # Reasoning modelleri (qwen vb.) <think>...</think> blokları döndürebilir — temizle
         raw = re.sub(r"(?s)<think>.*?</think>", "", raw).strip()
         return raw
