@@ -70,7 +70,7 @@ except Exception as _llm_err:
     llm_service.api_key = ""
     llm_service.mode = "external"
     llm_service.provider = "gemini"
-    llm_service.model_name = "gemini-1.5-pro"
+    llm_service.model_name = "gemini-2.5-flash"
     llm_service.base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
     llm_service.client = None
     llm_service._cooldown_until = 0.0
